@@ -10,7 +10,7 @@ const BearerStrategy = require('passport-http-bearer').Strategy;
 //Configure the Local Strategy (uses username and password to authenticate)
 passport.use(new LocalStrategy(
     function(username, password, done) {
-        User.getByUsername(username, password, function(user) {
+        User.getByUsernameandPassword(username, password, function(user) {
             if (!user) {
                 return done(null, false, { message: 'Incorrect username.' });
             }
@@ -45,8 +45,11 @@ passport.use(new BasicStrategy(
 passport.use(new BearerStrategy(
     (accessToken, done) => {
         AccessToken.findByToken(accessToken, function(token) {
-            if (!accessToken) {
+            if (!token) {
                 return done(null, false, { message: 'Sorry, Something Went Wrong.' });
+            }
+            if (token.expiration_date < Date.now()) {
+                return done(null, false, { message: 'Sorry, This token is expired and a new one is needed.' });
             }
             if (token.user_id) {
                 User.findById(token.user_id, function(user) {

@@ -26,11 +26,19 @@ module.exports.create = function (
 module.exports.findByToken = function (token, callback) {
     AccessToken.findOne({where: {token: token}}).then(accessToken => {
         if(!accessToken) return null;
-        var accessToken = mapValues(token);
+        var accessToken = mapValues(accessToken);
 
         callback(accessToken);
     });
 };
+
+module.exports.destroyByToken = function (token, callback) {
+    AccessToken.findOne({where: {token: token}}).then(async token => {
+        if(!token) return callback(null, false, { message: 'Incorrect Token' });
+        await token.destroy();
+        callback(null);
+    });
+  };
 
 function mapValues(token) {
     return {

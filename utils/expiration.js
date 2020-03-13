@@ -8,7 +8,6 @@ module.exports.setExpirationDate = function(date) {
 };
 
 module.exports.getExpiresInSeconds = function(expirationDate) {
-
   var difference = expirationDate - Date.now();
 
   var expiresInSeconds = Math.round(difference / 1000);

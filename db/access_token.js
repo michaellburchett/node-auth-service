@@ -11,6 +11,7 @@ class AccessToken extends Model {}
 AccessToken.init({
     token: DataTypes.STRING,
     client_id: DataTypes.INTEGER,
+    expiration_date: DataTypes.DATE,
     user_id: {
       type: Sequelize.INTEGER,
       references: {

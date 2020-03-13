@@ -30,7 +30,8 @@ server.grant(oauth2orize.grant.code(function(client, redirectURI, user, ares, do
 // values.
 server.grant(oauth2orize.grant.token((client, user, ares, done) => {
     const token = utils.getUid(256);
-    AccessToken.create(token, user.id, client.clientId, function(accessToken) {
+    var expiration_date = expiration.setExpirationDate(Date.now());
+    AccessToken.create(token, expiration_date, user.id, client.clientId, function(accessToken) {
         if (!accessToken) {
             return done(null, false, { message: 'Sorry, Something Went Wrong.' });
         }

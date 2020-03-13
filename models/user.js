@@ -4,7 +4,22 @@ const User = require('../db/user.js');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
-module.exports.getByUsername = async function (username, password, callback) { 
+module.exports.create = function (
+    username, 
+    password,
+    callback
+  ) { 
+    User.create({
+        username: username,
+        password: bcrypt.hashSync(password, bcrypt.genSaltSync(saltRounds))
+    })
+    .then(() => User.findOrCreate({where: {username: username}, defaults: {username: 'this'}}))
+    .then(([user, created]) => {
+        callback(user.dataValues);
+    })
+};
+
+module.exports.getByUsernameandPassword = async function (username, password, callback) {
     User.findOne({where: {username: username}}).then(user => {
         if(!user) return callback(null, false, { message: 'Incorrect Username' });
         if(!bcrypt.compareSync(password, user.dataValues.password)) return callback(null, false, { message: 'Incorrect Password' });
@@ -19,10 +34,9 @@ module.exports.getByUsername = async function (username, password, callback) {
         
     });
 };
-
-module.exports.findById = function (id, callback) { 
-    User.findOne({where: {id: id}}).then(user => {
-        if(!user) return null;
+module.exports.getByUsername = async function (username, callback) {
+    User.findOne({where: {username: username}}).then(user => {
+        if(!user) return callback(null, false, { message: 'Incorrect Username' });
 
         var user = {
             id: user.dataValues.id,
@@ -31,13 +45,27 @@ module.exports.findById = function (id, callback) {
         };
 
         callback(user);
+        
     });
 };
 
-async function checkUser(passwordHash, password) {
-    const match = await bcrypt.compare(password, passwordHash);
- 
-    if(match) {
-        return true;
-    }
-}
+module.exports.findById = function (id, callback) {
+    User.findOne({where: {id: id}}).then(user => {
+        if(!user) return null;
+
+        var user = {
+            id: user.dataValues.id,
+            username: user.dataValues.username
+        };
+
+        callback(user);
+    });
+};
+
+module.exports.destroyByUsername = function (username, callback) {
+    User.findOne({where: {username: username}}).then(async user => {
+        if(!user) return callback(null, false, { message: 'Incorrect Username' });
+        await user.destroy();
+        callback(null);
+    });
+};

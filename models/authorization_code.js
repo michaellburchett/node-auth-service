@@ -42,3 +42,11 @@ module.exports.findByCode = function (
     callback(code);
   });
 };
+
+module.exports.destroyByCode = function (code, callback) {
+  AuthorizationCode.findOne({where: {code: code}}).then(async code => {
+      if(!code) return callback(null, false, { message: 'Incorrect Code' });
+      await code.destroy();
+      callback(null);
+  });
+};
