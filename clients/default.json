@@ -1,0 +1,12 @@
+{
+  "Clients": [
+    {
+      "id": "1", 
+      "name": "Samplr", 
+      "clientId": "abc123", 
+      "clientSecret": "ssh-secret", 
+      "isTrusted": true, 
+      "redirectURI": "https://www.google.com/"
+    }
+  ]
+}
