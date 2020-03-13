@@ -1,17 +1,5 @@
 'use strict';
 
-//Backlog:
-
-//Is Expired
-//If Expired, deny access
-//Issue Refresh Token
-//Get token by using Refresh Token endpoint
-//Implicit Grant
-//Password Grant
-//Client Grant
-//Add Users
-//Reset Password
-
 const express = require('express');
 const passport = require('passport');
 const path = require('path');
