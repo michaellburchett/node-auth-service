@@ -14,6 +14,8 @@ module.exports = function(app){
     const Login = require('../repositories/login.js');
     app.post('/login', Login.authenticate);
     app.get('/login', Login.show_login);
+    app.post('/register', Login.register);
+    app.get('/register', Login.show_register);
 
     //OAuth protected APIs
     const Api = require('../repositories/api.js');

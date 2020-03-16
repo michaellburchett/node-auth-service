@@ -8,7 +8,7 @@ module.exports.create = function (
     username, 
     password,
     callback
-  ) { 
+  ) {
     User.create({
         username: username,
         password: bcrypt.hashSync(password, bcrypt.genSaltSync(saltRounds))

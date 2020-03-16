@@ -72,6 +72,28 @@ passport.use(new BearerStrategy(
     }
 ));
 
+/**
+ * Register Users
+ *
+ */
+passport.use('local-signup', new LocalStrategy({
+        passReqToCallback : true
+    },
+    (req, username, password, done) => {
+        if(req.body.password != req.body.passwordverification) return done(null, false, { message: 'Sorry, These passwords do not match.' });
+
+        User.getByUsername(username, function(user) {
+            if (user) return done(null, false, { message: 'Sorry, A user with this username already exists.' });
+        });
+
+        User.create(username, password, function(user) {
+            if (!user) return done(null, false, { message: 'Sorry, Something went wrong.' });
+            return done(null, user);
+        })
+    }
+));
+
+
 //Serialization and Deserialization of Users for Passport Use
 passport.serializeUser(function(user, done) {
     return done(null, user);

@@ -1,4 +1,5 @@
 const passport = require('passport');
+const User = require('../models/user.js');
 
 module.exports.authenticate = [
     passport.authenticate('local', { 
@@ -10,5 +11,18 @@ module.exports.authenticate = [
 module.exports.show_login = [
     function(req, res) {
         res.render('login');
+    }
+];
+
+module.exports.register = [
+    passport.authenticate('local-signup', { 
+        successReturnToOrRedirect: '/', 
+        failureRedirect: '/register' 
+    })
+];
+
+module.exports.show_register = [
+    function(req, res) {
+        res.render('register');
     }
 ];
