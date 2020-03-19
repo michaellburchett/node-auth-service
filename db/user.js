@@ -9,7 +9,7 @@ const sequelize = new Sequelize(process.env.DB_DATABASE, process.env.DB_USER, pr
   
 class User extends Model {}
 User.init({
-    username: DataTypes.STRING,
+    email: DataTypes.STRING,
     password: DataTypes.STRING
 }, { 
     // don't forget to enable timestamps!

@@ -1,24 +1,78 @@
 const User = require('../models/user.js');
 const Client = require('../models/client.js');
 const AccessToken = require('../models/access_token.js');
+const ResetPasswordToken = require('../models/reset_password_token.js');
 
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const BasicStrategy = require('passport-http').BasicStrategy;
 const BearerStrategy = require('passport-http-bearer').Strategy;
 
-//Configure the Local Strategy (uses username and password to authenticate)
-passport.use(new LocalStrategy(
-    function(username, password, done) {
-        User.getByUsernameandPassword(username, password, function(user) {
+/**
+ * Configure the Local Strategy (uses email and password to authenticate)
+ *
+ */
+passport.use('local', new LocalStrategy({
+        usernameField : "email"
+    },(email, password, done) => {
+        User.getByEmailandPassword(email, password, function(user) {
             if (!user) {
-                return done(null, false, { message: 'Incorrect username.' });
+                return done(null, false, { message: 'Incorrect email.' });
             }
 
             return done(null, user);
         });
     }
 ));
+
+/**
+ * Register Users
+ *
+ */
+passport.use('local-signup', new LocalStrategy({
+    usernameField : "email",
+    passReqToCallback : true
+},
+(req, email, password, done) => {
+    if(req.body.password != req.body.passwordverification) return done(null, false, { message: 'Sorry, These passwords do not match.' });
+
+    User.getByEmail(email, function(user) {
+        if (user) return done(null, false, { message: 'Sorry, A user with this email already exists.' });
+    });
+
+    User.create(email, password, function(user) {
+        if (!user) return done(null, false, { message: 'Sorry, Something went wrong.' });
+        return done(null, user);
+    })
+}));
+
+/**
+ * Changes a user's password
+ *
+ */
+passport.use('local-reset-password', new LocalStrategy({
+    usernameField : "email",
+    passReqToCallback : true
+},
+(req, email, password, done) => {
+    if(req.body.password != req.body.passwordverification) return done(null, false, { message: 'Sorry, These passwords do not match.' });
+    User.getByEmail(email, function(user) {
+        if (!user) return done(null, false, { message: 'Sorry, This is not a valid email address.' });
+        ResetPasswordToken.getByTokenAndUserId(req.body.token, user.id, async function(reset_password_token) {
+            if (!reset_password_token) return done(null, false, { message: 'Sorry, This this is not a valid token.' });
+            if(reset_password_token.expiration_date < Date.now()) return done(null, false, { message: 'Sorry, This request is expired. Please request a new email.' });
+            if(reset_password_token.is_used == true) return done(null, false, { message: 'Sorry, This link has been used. Please request a new email.' });
+            User.updatePassword(user.id, password, function(user) {
+                if(!user) return done(null, false, { message: 'Sorry, Something went wrong' });
+                ResetPasswordToken.hasBeenUsed(reset_password_token.id, function(reset_password_token) {
+                    if(!reset_password_token) return done(null, false, { message: 'Sorry, Something went wrong' });
+                    return done(null, user);
+                })
+            })
+        });
+    });
+}));
+
 
 //Configure the Basic Strategy (uses Basic Auth, used in OAuth to verify clients)
 passport.use(new BasicStrategy(
@@ -72,33 +126,13 @@ passport.use(new BearerStrategy(
     }
 ));
 
-/**
- * Register Users
- *
- */
-passport.use('local-signup', new LocalStrategy({
-        passReqToCallback : true
-    },
-    (req, username, password, done) => {
-        if(req.body.password != req.body.passwordverification) return done(null, false, { message: 'Sorry, These passwords do not match.' });
-
-        User.getByUsername(username, function(user) {
-            if (user) return done(null, false, { message: 'Sorry, A user with this username already exists.' });
-        });
-
-        User.create(username, password, function(user) {
-            if (!user) return done(null, false, { message: 'Sorry, Something went wrong.' });
-            return done(null, user);
-        })
-    }
-));
-
 
 //Serialization and Deserialization of Users for Passport Use
-passport.serializeUser(function(user, done) {
-    return done(null, user);
+passport.serializeUser(function(email, done) {
+    return done(null, email);
 });
-  
-passport.deserializeUser((user, done) => {
-    return done(null, user);
+
+
+passport.deserializeUser((email, done) => {
+    return done(null, email);
 });

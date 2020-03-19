@@ -30,6 +30,8 @@ describe('Authentication Code Grant', function() {
         before(async () => {
             browser = await puppeteer.launch();
             page = await browser.newPage();
+
+            User.create('janedoe@mailinator.com', '123Password', function(user) {});
         })
 
         it('should return a login screen when using /dialog/authorize endpoint', function(done) {
@@ -46,8 +48,8 @@ describe('Authentication Code Grant', function() {
         it('should send a user to the Decision page after a successful login', async function() {
             var text = await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
-                await page.waitFor('input[name=username]');
-                await page.$eval('input[name=username]', el => el.value = 'janedoe');
+                await page.waitFor('input[name=email]');
+                await page.$eval('input[name=email]', el => el.value = 'janedoe@mailinator.com');
                 await page.$eval('input[name=password]', el => el.value = '123Password');
                 await page.click('input[type="submit"]');
 
@@ -134,7 +136,9 @@ describe('Authentication Code Grant', function() {
         }).timeout(10000);
 
         after(async () => {
-            await browser.close()
+            await browser.close();
+
+            User.destroyByEmail("janedoe@mailinator.com", function(done) {});
         })
     });
 
@@ -144,7 +148,7 @@ describe('Authentication Code Grant', function() {
             browser = await puppeteer.launch();
             page = await browser.newPage();
 
-            User.create('smith_wigglesworth', '123Password', function(user) {
+            User.create('janedoe@mailinator.com', '123Password', function(user) {
                 AuthorizationCode.create("sample_authorization_code", "abc123", "https://www.google.com/", "*", user.id, function(code) {
                     var date = new Date();
                     var expiration_date = date.setDate(date.getDate() - 1);   
@@ -156,8 +160,8 @@ describe('Authentication Code Grant', function() {
         it('should redirect a user back to the login page after an unsuccessful login', async function() {
             var text = await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
-                await page.waitFor('input[name=username]');
-                await page.$eval('input[name=username]', el => el.value = 'janedoe');
+                await page.waitFor('input[name=email]');
+                await page.$eval('input[name=email]', el => el.value = 'janedoe@mailinator.com');
                 await page.$eval('input[name=password]', el => el.value = '456Password');
                 await page.click('input[type="submit"]');
 
@@ -170,8 +174,8 @@ describe('Authentication Code Grant', function() {
         it('should send a user a code if they Accept the decision', async function() {
             var text = await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
-                await page.waitFor('input[name=username]');
-                await page.$eval('input[name=username]', el => el.value = 'janedoe');
+                await page.waitFor('input[name=email]');
+                await page.$eval('input[name=email]', el => el.value = 'janedoe@mailinator.com');
                 await page.$eval('input[name=password]', el => el.value = '123Password');
                 await page.click('input[type="submit"]');
                 await page.waitFor('input[name="accept"]');
@@ -293,7 +297,7 @@ describe('Authentication Code Grant', function() {
             //remove user and tokens and codes
             AccessToken.destroyByToken("expired_token", function(done) {});
             AuthorizationCode.destroyByCode("sample_authorization_code", function(done) {});
-            User.destroyByUsername("smith_wigglesworth", function(done) {});
+            User.destroyByEmail("janedoe@mailinator.com", function(done) {});
         })
     });
 });

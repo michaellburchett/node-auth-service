@@ -19,3 +19,10 @@ module.exports.getExpiresInSeconds = function(expirationDate) {
 module.exports.isExpired = function(expiresInSeconds) {
   (expiresInSeconds > 0) ? false : true;
 };
+
+module.exports.setPasswordResetExpirationDate = function(date) {
+
+  date.setDate(date.getDate() + 1);
+
+  return date;
+};
