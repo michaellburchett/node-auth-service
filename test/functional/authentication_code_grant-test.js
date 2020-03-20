@@ -13,25 +13,24 @@ const AuthorizationCode = require('../../models/authorization_code.js');
 chai.use(chaiHttp);
 var expect = chai.expect;
 
-//Future Setup:
-//--Add User to DB
-//--Add Client to DB
-
-//Future Tear Down:
-//--Remove user, client, and assosiated tokens and codes from DB
-
 describe('Authentication Code Grant', function() {
-
-    let browser
-    let page;
+    
+    before(async () => {
+        User.create('janedoe@mailinator.com', '123Password', function(user) {});
+        User.create('jasperdoe@mailinator.com', '123Password', function(user) {
+            AuthorizationCode.create("sample_authorization_code", "abc123", "https://www.google.com/", "*", user.id, function(code) {
+                var date = new Date();
+                var expiration_date = date.setDate(date.getDate() - 1);   
+                AccessToken.create("expired_token", expiration_date, user.id, "abc123", function(token) {});
+            })
+        });
+    })
 
     describe('authorize endpoint success', function() {
-
+        
         before(async () => {
             browser = await puppeteer.launch();
             page = await browser.newPage();
-
-            User.create('janedoe@mailinator.com', '123Password', function(user) {});
         })
 
         it('should return a login screen when using /dialog/authorize endpoint', function(done) {
@@ -109,8 +108,9 @@ describe('Authentication Code Grant', function() {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name="accept"]');
                 await page.click('input[name="accept"]');
- 
+
                 const pageUrl = page.url();
+
                 const string = pageUrl.split("code=");
                 const code = string[1];
 
@@ -137,31 +137,20 @@ describe('Authentication Code Grant', function() {
 
         after(async () => {
             await browser.close();
-
-            User.destroyByEmail("janedoe@mailinator.com", function(done) {});
         })
     });
 
     describe('authorize endpoint failure', function() {
-
         before(async () => {
             browser = await puppeteer.launch();
             page = await browser.newPage();
-
-            User.create('janedoe@mailinator.com', '123Password', function(user) {
-                AuthorizationCode.create("sample_authorization_code", "abc123", "https://www.google.com/", "*", user.id, function(code) {
-                    var date = new Date();
-                    var expiration_date = date.setDate(date.getDate() - 1);   
-                    AccessToken.create("expired_token", expiration_date, user.id, "abc123", function(token) {});
-                })
-            });
         })
 
         it('should redirect a user back to the login page after an unsuccessful login', async function() {
-            var text = await (async () => {
+            var text = await (async () => {//I think it is still logged in
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name=email]');
-                await page.$eval('input[name=email]', el => el.value = 'janedoe@mailinator.com');
+                await page.$eval('input[name=email]', el => el.value = 'jasperdoe@mailinator.com');
                 await page.$eval('input[name=password]', el => el.value = '456Password');
                 await page.click('input[type="submit"]');
 
@@ -171,31 +160,12 @@ describe('Authentication Code Grant', function() {
             })();
         }).timeout(10000);
 
-        it('should send a user a code if they Accept the decision', async function() {
-            var text = await (async () => {
-                await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
-                await page.waitFor('input[name=email]');
-                await page.$eval('input[name=email]', el => el.value = 'janedoe@mailinator.com');
-                await page.$eval('input[name=password]', el => el.value = '123Password');
-                await page.click('input[type="submit"]');
-                await page.waitFor('input[name="accept"]');
-                await page.click('input[name="accept"]');
-
-                const pageUrl = page.url();
-                const string = pageUrl.split("code=");
-                const code = string[1];
-
-                var code_exists;
-                (code.length > 0) ? code_exists = true : code_exists = false;
-
-                assert(code_exists);
-                AuthorizationCode.destroyByCode(code, function(done) {});
-            })();
-        }).timeout(10000);
-
         it('should not send a user a code if they Deny the decision, and in fact should send an "access_denied" error', async function() {
             var text = await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
+                await page.$eval('input[name=email]', el => el.value = 'jasperdoe@mailinator.com');
+                await page.$eval('input[name=password]', el => el.value = '123Password');
+                await page.click('input[type="submit"]');
                 await page.waitFor('input[name="cancel"]');
                 await page.click('input[name="cancel"]');
 
@@ -293,11 +263,13 @@ describe('Authentication Code Grant', function() {
 
         after(async () => {
             await browser.close();
-
-            //remove user and tokens and codes
-            AccessToken.destroyByToken("expired_token", function(done) {});
-            AuthorizationCode.destroyByCode("sample_authorization_code", function(done) {});
-            User.destroyByEmail("janedoe@mailinator.com", function(done) {});
         })
     });
+
+    after(async () => {
+        User.destroyByEmail("janedoe@mailinator.com", function(done) {});
+        AccessToken.destroyByToken("expired_token", function(done) {});
+        AuthorizationCode.destroyByCode("sample_authorization_code", function(done) {});
+        User.destroyByEmail("jasperdoe@mailinator.com", function(done) {});
+    })
 });
