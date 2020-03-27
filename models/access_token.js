@@ -15,30 +15,28 @@ module.exports.create = function (
         user_id: user_id,
         client_id: client_id,
     })
-    .then(() => AccessToken.findOrCreate({where: {token: token}, defaults: {token: 'this'}}))
+    .then(() => AccessToken.findOrCreate({where: {token: token}, defaults: {token: token}}))
     .then(([token, created]) => {
-        var accessToken = mapValues(token);
-
-        callback(accessToken);
+        callback(mapValues(token));
     })
 };
 
 module.exports.findByToken = function (token, callback) {
-    AccessToken.findOne({where: {token: token}}).then(accessToken => {
+    AccessToken.findOne({where: {token: token}}).then(async accessToken => {
         if(!accessToken) return null;
-        var accessToken = mapValues(accessToken);
 
-        callback(accessToken);
+        callback(mapValues(accessToken));
     });
 };
 
-module.exports.destroyByToken = function (token, callback) {
-    AccessToken.findOne({where: {token: token}}).then(async token => {
-        if(!token) return callback(null, false, { message: 'Incorrect Token' });
-        await token.destroy();
+module.exports.destroyByToken = async function (token, callback) {
+    AccessToken.findOne({where: {token: token}}).then(accessToken => {
+        if(!accessToken) return callback(null, false, { message: 'Incorrect Token' });
+        accessToken.destroy();
+
         callback(null);
     });
-  };
+};
 
 function mapValues(token) {
     return {

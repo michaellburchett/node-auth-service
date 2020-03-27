@@ -6,7 +6,6 @@ This is a WIP, the features that are currently available are:
 
 Backlog of features to be implemented:
 * Better messages to front end when failures occur
-* Register Tests
 * Reset Passwords Tests
 * Issue Refresh token and use it to refresh a token 
 * Implicit Grant

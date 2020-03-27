@@ -16,9 +16,7 @@ passport.use('local', new LocalStrategy({
         usernameField : "email"
     },(email, password, done) => {
         User.getByEmailandPassword(email, password, function(user) {
-            if (!user) {
-                return done(null, false, { message: 'Incorrect email.' });
-            }
+            if (!user) return done(null, false, { message: 'Incorrect email.' });
 
             return done(null, user);
         });
@@ -34,16 +32,18 @@ passport.use('local-signup', new LocalStrategy({
     passReqToCallback : true
 },
 (req, email, password, done) => {
-    if(req.body.password != req.body.passwordverification) return done(null, false, { message: 'Sorry, These passwords do not match.' });
+    if(req.body.password != req.body.passwordverification) return done(null, false, { message: 'Sorry, These passwords do not match.' })
 
     User.getByEmail(email, function(user) {
-        if (user) return done(null, false, { message: 'Sorry, A user with this email already exists.' });
+        if (!user) {
+            User.create(email, password, function(user) {
+                if (!user) return done(null, false, { message: 'Sorry, Something went wrong.' });
+                return done(null, user);
+            })
+        } else {
+            return done(null, false, { message: 'Sorry, A User with this Email already exists' });
+        }
     });
-
-    User.create(email, password, function(user) {
-        if (!user) return done(null, false, { message: 'Sorry, Something went wrong.' });
-        return done(null, user);
-    })
 }));
 
 /**

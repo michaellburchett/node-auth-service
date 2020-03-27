@@ -1,14 +1,18 @@
 var assert = require('assert');
 
-let chai = require('chai');
-let chaiHttp = require('chai-http');
-let should = chai.should();
-let app = require('../../index.js');
+const chai = require('chai');
+const chaiHttp = require('chai-http');
 const puppeteer = require('puppeteer');
-const expiration = require('../../utils/expiration.js');
 const User = require('../../models/user.js');
-const AccessToken = require('../../models/access_token.js');
-const AuthorizationCode = require('../../models/authorization_code.js');
+const UserDB = require('../../db/user.js');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+const Sequelize = require('sequelize');
+const sequelize = new Sequelize(process.env.DB_DATABASE, process.env.DB_USER, process.env.DB_PASS, {
+    host: process.env.DB_HOST,
+    dialect: 'mysql',
+    logging: false
+});
 
 chai.use(chaiHttp);
 var expect = chai.expect;
@@ -19,7 +23,7 @@ describe('Register Accounts', function() {
         browser = await puppeteer.launch();
         page = await browser.newPage();
 
-        User.create('jamesdoe@mailinator.com', '123Password', function(user) {});
+        test_data = await add_test_data();
     })
 
     describe('registration success', function() {
@@ -33,10 +37,10 @@ describe('Register Accounts', function() {
                 await page.$eval('input[name=passwordverification]', el => el.value = '123Password');
                 await page.click('input[type="submit"]');
 
-                const text = await page.evaluate(() => document.querySelector('.body').textContent);
-
-                assert.equal(text,"OAuth 2.0 Server");
-            });
+                await User.getByEmail('jerrydoe@mailinator.com', (user) => {
+                    assert.equal(user.email,'jerrydoe@mailinator.com');
+                })
+            })();
         }).timeout(10000);
     });
 
@@ -54,7 +58,7 @@ describe('Register Accounts', function() {
                 const text = await page.evaluate(() => document.querySelector('.hello').textContent);
 
                 assert.equal(text,"Register:");
-            });
+            })();
         }).timeout(10000);
 
         it('should not register an account is a user with that username already exists', async function() {
@@ -69,15 +73,32 @@ describe('Register Accounts', function() {
                 const text = await page.evaluate(() => document.querySelector('.hello').textContent);
 
                 assert.equal(text,"Register:");
-            });
+            })();
         }).timeout(10000);
     });
 
     after(async () => {
         await browser.close();
 
-        User.destroyByEmail("jerrydoe@mailinator.com", function(done) {});
-        User.destroyByEmail("jimdoe@mailinator.com", function(done) {});
-        User.destroyByEmail("jamesdoe@mailinator.com", function(done) {});
+        await remove_test_data();
     })
+
+    async function add_test_data() {
+        //return await User.create('jamesdoe@mailinator.com', '123Password', function(user) {});
+        return await sequelize.transaction(async t => {
+            return await UserDB.create({
+              email: 'jamesdoe@mailinator.com',
+              password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
+            }, {transaction: t}).then(result => {
+                return result;
+            }).catch(err => {
+                console.log(err);
+            });
+        });
+    }
+
+    async function remove_test_data() {
+        await User.destroyByEmail("jerrydoe@mailinator.com", function(done) {});
+        await User.destroyByEmail("jamesdoe@mailinator.com", function(done) {});
+    }
 });

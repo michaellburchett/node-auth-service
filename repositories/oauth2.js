@@ -14,12 +14,12 @@ var server = oauth2orize.createServer();
 //A client must obtain permission from a user before it is issued an access token. This permission is known as a grant, the most common type of which is an authorization code.
 server.grant(oauth2orize.grant.code(function(client, redirectURI, user, ares, done) {
     const code = utils.getUid(16);
-    AuthorizationCode.create(code, client.clientId, redirectURI, ares.scope, user.id, function(code) {
-        if (!code) {
+    AuthorizationCode.create(code, client.clientId, redirectURI, ares.scope, user.id, function(authorization_code) {
+        if (!authorization_code) {
             return done(null, false, { message: 'Sorry, Something Went Wrong.' });
         }
 
-        return done(null, code);
+        return done(null, authorization_code.code);
     })
 }));
 

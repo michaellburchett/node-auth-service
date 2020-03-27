@@ -1,14 +1,26 @@
 var assert = require('assert');
 
-let chai = require('chai');
-let chaiHttp = require('chai-http');
-let should = chai.should();
-let app = require('../../index.js');
+const chai = require('chai');
+const chaiHttp = require('chai-http');
+const should = chai.should();
+const app = require('../../index.js');
 const puppeteer = require('puppeteer');
-const expiration = require('../../utils/expiration.js');
 const User = require('../../models/user.js');
 const AccessToken = require('../../models/access_token.js');
 const AuthorizationCode = require('../../models/authorization_code.js');
+
+const UserDB = require('../../db/user.js');
+const AuthorizationCodeDB = require('../../db/authorization_code.js');
+const AccessTokenDB = require('../../db/access_token.js');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+const Sequelize = require('sequelize');
+const sequelize = new Sequelize(process.env.DB_DATABASE, process.env.DB_USER, process.env.DB_PASS, {
+    host: process.env.DB_HOST,
+    dialect: 'mysql',
+    logging: false
+});
+
 
 chai.use(chaiHttp);
 var expect = chai.expect;
@@ -16,14 +28,7 @@ var expect = chai.expect;
 describe('Authentication Code Grant', function() {
     
     before(async () => {
-        User.create('janedoe@mailinator.com', '123Password', function(user) {});
-        User.create('jasperdoe@mailinator.com', '123Password', function(user) {
-            AuthorizationCode.create("sample_authorization_code", "abc123", "https://www.google.com/", "*", user.id, function(code) {
-                var date = new Date();
-                var expiration_date = date.setDate(date.getDate() - 1);   
-                AccessToken.create("expired_token", expiration_date, user.id, "abc123", function(token) {});
-            })
-        });
+        test_data = await add_test_data();
     })
 
     describe('authorize endpoint success', function() {
@@ -147,7 +152,7 @@ describe('Authentication Code Grant', function() {
         })
 
         it('should redirect a user back to the login page after an unsuccessful login', async function() {
-            var text = await (async () => {//I think it is still logged in
+            var text = await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jasperdoe@mailinator.com');
@@ -196,7 +201,7 @@ describe('Authentication Code Grant', function() {
                     redirect_uri: 'https://www.google.com/'
                 })
                 .end((err, res) => {
-                    res.should.have.status(500); //later make it 403, unauthed
+                    res.should.have.status(500);
                     AuthorizationCode.destroyByCode(code, function(done) {});
                 });
             })();
@@ -221,7 +226,7 @@ describe('Authentication Code Grant', function() {
                     redirect_uri: 'https://www.google.com/'
                 })
                 .end((err, res) => {
-                    res.should.have.status(500); //later make it 403, unauthed
+                    res.should.have.status(500);
                     AuthorizationCode.destroyByCode(code, function(done) {});
                 });
             })();
@@ -254,7 +259,7 @@ describe('Authentication Code Grant', function() {
             AccessToken.findByToken('expired_token', function(token) {
                 chai.request(app)
                 .get('/api/userinfo')
-                .set("Authorization", "Bearer " + token)
+                .set("Authorization", "Bearer " + test_data.dataValues)
                 .end((error, response) => {
                     response.should.have.status(400);
                 });
@@ -267,9 +272,50 @@ describe('Authentication Code Grant', function() {
     });
 
     after(async () => {
-        User.destroyByEmail("janedoe@mailinator.com", function(done) {});
-        AccessToken.destroyByToken("expired_token", function(done) {});
-        AuthorizationCode.destroyByCode("sample_authorization_code", function(done) {});
-        User.destroyByEmail("jasperdoe@mailinator.com", function(done) {});
+        await remove_test_data();
     })
+
+    async function add_test_data() {
+        return await sequelize.transaction(async t => {
+            return await UserDB.create({
+              email: 'janedoe@mailinator.com',
+              password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
+            }, {transaction: t}).then(async user1 => {
+                return await UserDB.create({
+                    email: 'jasperdoe@mailinator.com',
+                    password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
+                }, {transaction: t}).then(async user2 => {
+                    return await AuthorizationCodeDB.create({
+                        email: 'jasperdoe@mailinator.com',
+                        password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds)),
+                        code: 'sample_authorization_code',
+                        client_id: 'abc123',
+                        redirectURI: 'https://www.google.com/',
+                        ares_scope:  '*',
+                        user_id: user2.id
+                    }, {transaction: t}).then(async authorizationCode => {
+                        var date = new Date();
+                        var expiration_date = date.setDate(date.getDate() - 1);
+                        return await AccessTokenDB.create({
+                            token: 'expired_token',
+                            expiration_date: expiration_date,
+                            user_id: user2.id,
+                            client_id: 'abc123'
+                        }, {transaction: t});
+                    });
+                });
+            });
+        }).then(result => {
+            return result;
+        }).catch(err => {
+            console.log(err);
+        });
+    }
+
+    async function remove_test_data() {
+        await User.destroyByEmail("janedoe@mailinator.com", function(done) {});
+        await AccessToken.destroyByToken("expired_token", function(done) {});
+        await AuthorizationCode.destroyByCode("sample_authorization_code", function(done) {});
+        await User.destroyByEmail("jasperdoe@mailinator.com", function(done) {});
+    }
 });
