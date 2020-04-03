@@ -55,13 +55,13 @@ describe('Register Accounts', function() {
                 await page.$eval('input[name=passwordverification]', el => el.value = '456Password');
                 await page.click('input[type="submit"]');
 
-                const text = await page.evaluate(() => document.querySelector('.hello').textContent);
+                const text = await page.evaluate(() => document.querySelector('.message').textContent);
 
-                assert.equal(text,"Register:");
+                assert.equal(text,"Sorry, these passwords do not match");
             })();
         }).timeout(10000);
 
-        it('should not register an account is a user with that username already exists', async function() {
+        it('should not register an account is a user with that email already exists', async function() {
             var text = await (async () => {
                 await page.goto('http://localhost:3000/register');
                 await page.waitFor('input[name=email]');
@@ -70,9 +70,9 @@ describe('Register Accounts', function() {
                 await page.$eval('input[name=passwordverification]', el => el.value = '123Password');
                 await page.click('input[type="submit"]');
 
-                const text = await page.evaluate(() => document.querySelector('.hello').textContent);
+                const text = await page.evaluate(() => document.querySelector('.message').textContent);
 
-                assert.equal(text,"Register:");
+                assert.equal(text,"Sorry, a user with that Email already exists");
             })();
         }).timeout(10000);
     });
@@ -84,7 +84,6 @@ describe('Register Accounts', function() {
     })
 
     async function add_test_data() {
-        //return await User.create('jamesdoe@mailinator.com', '123Password', function(user) {});
         return await sequelize.transaction(async t => {
             return await UserDB.create({
               email: 'jamesdoe@mailinator.com',

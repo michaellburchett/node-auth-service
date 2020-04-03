@@ -151,7 +151,7 @@ describe('Authentication Code Grant', function() {
             page = await browser.newPage();
         })
 
-        it('should redirect a user back to the login page after an unsuccessful login', async function() {
+        it('should show the proper message when a user is using a wrong password', async function() {
             var text = await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name=email]');
@@ -159,9 +159,9 @@ describe('Authentication Code Grant', function() {
                 await page.$eval('input[name=password]', el => el.value = '456Password');
                 await page.click('input[type="submit"]');
 
-                const text = await page.evaluate(() => document.querySelector('.hello').textContent);
+                const text = await page.evaluate(() => document.querySelector('.message').textContent);
 
-                assert.equal(text,"Login:");
+                assert.equal(text,"Sorry, these is no account with that Email and Password");
             })();
         }).timeout(10000);
 

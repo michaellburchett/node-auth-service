@@ -9,6 +9,7 @@ const session = require('express-session');
 const errorHandler = require('errorhandler');
 const cookieParser = require('cookie-parser');
 const ejs = require('ejs');
+const flash = require("connect-flash");
 
 //Configure Application
 require('dotenv').config();
@@ -23,6 +24,7 @@ app.use(errorHandler());
 app.use(session({ secret: 'correct horse battery staple', resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(flash());
 
 //Application Routes
 require('./routes')(app);

@@ -13,10 +13,11 @@ const BearerStrategy = require('passport-http-bearer').Strategy;
  *
  */
 passport.use('local', new LocalStrategy({
-        usernameField : "email"
-    },(email, password, done) => {
+        usernameField : "email",
+        passReqToCallback: true
+    },(req, email, password, done) => {
         User.getByEmailandPassword(email, password, function(user) {
-            if (!user) return done(null, false, { message: 'Incorrect email.' });
+            if (!user) return done(null, false, req.flash('errorMessage','Sorry, these is no account with that Email and Password'));
 
             return done(null, user);
         });
@@ -32,16 +33,16 @@ passport.use('local-signup', new LocalStrategy({
     passReqToCallback : true
 },
 (req, email, password, done) => {
-    if(req.body.password != req.body.passwordverification) return done(null, false, { message: 'Sorry, These passwords do not match.' })
+    if(req.body.password != req.body.passwordverification) return done(null, false, req.flash('errorMessage','Sorry, these passwords do not match'));
 
     User.getByEmail(email, function(user) {
         if (!user) {
             User.create(email, password, function(user) {
-                if (!user) return done(null, false, { message: 'Sorry, Something went wrong.' });
+                if (!user) return done(null, false, req.flash('errorMessage','Sorry, Something went Wrong.'));
                 return done(null, user);
             })
         } else {
-            return done(null, false, { message: 'Sorry, A User with this Email already exists' });
+            return done(null, false, req.flash('errorMessage','Sorry, a user with that Email already exists'));
         }
     });
 }));
@@ -55,17 +56,24 @@ passport.use('local-reset-password', new LocalStrategy({
     passReqToCallback : true
 },
 (req, email, password, done) => {
-    if(req.body.password != req.body.passwordverification) return done(null, false, { message: 'Sorry, These passwords do not match.' });
+    
+    if(req.body.password != req.body.passwordverification) return done(null, false, req.flash('errorMessage','Sorry, These passwords do not match.'));
+
     User.getByEmail(email, function(user) {
-        if (!user) return done(null, false, { message: 'Sorry, This is not a valid email address.' });
-        ResetPasswordToken.getByTokenAndUserId(req.body.token, user.id, async function(reset_password_token) {
-            if (!reset_password_token) return done(null, false, { message: 'Sorry, This this is not a valid token.' });
-            if(reset_password_token.expiration_date < Date.now()) return done(null, false, { message: 'Sorry, This request is expired. Please request a new email.' });
+
+        if (!user) return done(null, false, req.flash('errorMessage','Sorry, This is not a valid email address.'));
+
+        ResetPasswordToken.getByTokenAndUserId(req.body.token, req.body.user_id, async function(reset_password_token) {
+            console.log();
+            if(!reset_password_token) return done(null, false, req.flash('errorMessage','Sorry, Invalid URL.'));
+            if(reset_password_token.is_used) return done(null, false, req.flash('errorMessage','Sorry, This token has already been used.'));
+
+            if(reset_password_token.expiration_date < Date.now()) return done(null, false, req.flash('errorMessage','Sorry, This request is expired. Please request a new email.'));
             if(reset_password_token.is_used == true) return done(null, false, { message: 'Sorry, This link has been used. Please request a new email.' });
             User.updatePassword(user.id, password, function(user) {
                 if(!user) return done(null, false, { message: 'Sorry, Something went wrong' });
                 ResetPasswordToken.hasBeenUsed(reset_password_token.id, function(reset_password_token) {
-                    if(!reset_password_token) return done(null, false, { message: 'Sorry, Something went wrong' });
+                    if(!reset_password_token) return done(null, false, req.flash('errorMessage','Sorry, Something went wrong'));
                     return done(null, user);
                 })
             })
