@@ -8,10 +8,12 @@ const puppeteer = require('puppeteer');
 const User = require('../../models/user.js');
 const AccessToken = require('../../models/access_token.js');
 const AuthorizationCode = require('../../models/authorization_code.js');
+const RefreshToken = require('../../models/refresh_token.js');
 
 const UserDB = require('../../db/user.js');
 const AuthorizationCodeDB = require('../../db/authorization_code.js');
 const AccessTokenDB = require('../../db/access_token.js');
+const RefreshTokenDB = require('../../db/refresh_token.js');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const Sequelize = require('sequelize');
@@ -77,7 +79,7 @@ describe('Authentication Code Grant', function() {
                 (code.length > 0) ? code_exists = true : code_exists = false;
 
                 assert(code_exists);
-                AuthorizationCode.destroyByCode(code, function(done) {});
+                await AuthorizationCode.destroyByCode(code, function(done) {});
             })();
         }).timeout(10000);
 
@@ -99,11 +101,12 @@ describe('Authentication Code Grant', function() {
                     code: code,
                     redirect_uri: 'https://www.google.com/'
                 })
-                .end((err, res) => {
+                .end(async (err, res) => {
                     res.should.have.status(200);
                     assert(res.body.access_token.token);
-                    AuthorizationCode.destroyByCode(code, function(done) {});
-                    AccessToken.destroyByToken(res.body.access_token.token, function(done) {});
+                    await AuthorizationCode.destroyByCode(code, function(done) {});
+                    await RefreshToken.destroyByToken(res.body.access_token.refresh_token, function(done) {});
+                    await AccessToken.destroyByToken(res.body.access_token.token, function(done) {});
                 });
             })();
         }).timeout(10000);
@@ -131,13 +134,34 @@ describe('Authentication Code Grant', function() {
                     chai.request(app)
                     .get('/api/userinfo')
                     .set("Authorization", "Bearer " + res.body.access_token.token)
-                    .end((error, response) => {
+                    .end(async (error, response) => {
                         response.should.have.status(200);
-                        AuthorizationCode.destroyByCode(code, function(done) {});
-                        AccessToken.destroyByToken(res.body.access_token.token, function(done) {});
+                        await AuthorizationCode.destroyByCode(code, function(done) {});
+                        await RefreshToken.destroyByToken(res.body.access_token.refresh_token, function(done) {});
+                        await AccessToken.destroyByToken(res.body.access_token.token, function(done) {});
                     });
                 });
             })();
+        }).timeout(10000);
+
+        it('should successfully generate a new Access Token when given a Refresh Token', async function() {
+            chai.request(app)
+            .post('/oauth/token')
+            .auth('abc123', 'ssh-secret')
+            .send({
+                grant_type: 'refresh_token', 
+                refresh_token: test_data.user_2.authorization_code.access_token.refresh_token
+            })
+            .end((err, res) => {
+                chai.request(app)
+                .get('/api/userinfo')
+                .set("Authorization", "Bearer " + res.body.access_token.token)
+                .end(async (error, response) => {
+                    response.should.have.status(200);
+                    await RefreshToken.destroyByToken(res.body.access_token.refresh_token, function(done) {});
+                    await AccessToken.destroyByToken(res.body.access_token.token, function(done) {});
+                });
+            });
         }).timeout(10000);
 
         after(async () => {
@@ -259,7 +283,7 @@ describe('Authentication Code Grant', function() {
             AccessToken.findByToken('expired_token', function(token) {
                 chai.request(app)
                 .get('/api/userinfo')
-                .set("Authorization", "Bearer " + test_data.dataValues)
+                .set("Authorization", "Bearer " + test_data.user_2.authorization_code.access_token)
                 .end((error, response) => {
                     response.should.have.status(400);
                 });
@@ -276,46 +300,86 @@ describe('Authentication Code Grant', function() {
     })
 
     async function add_test_data() {
-        return await sequelize.transaction(async t => {
-            return await UserDB.create({
-              email: 'janedoe@mailinator.com',
-              password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
-            }, {transaction: t}).then(async user1 => {
-                return await UserDB.create({
-                    email: 'jasperdoe@mailinator.com',
-                    password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
-                }, {transaction: t}).then(async user2 => {
-                    return await AuthorizationCodeDB.create({
-                        email: 'jasperdoe@mailinator.com',
-                        password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds)),
-                        code: 'sample_authorization_code',
-                        client_id: 'abc123',
-                        redirectURI: 'https://www.google.com/',
-                        ares_scope:  '*',
-                        user_id: user2.id
-                    }, {transaction: t}).then(async authorizationCode => {
-                        var date = new Date();
-                        var expiration_date = date.setDate(date.getDate() - 1);
-                        return await AccessTokenDB.create({
-                            token: 'expired_token',
-                            expiration_date: expiration_date,
-                            user_id: user2.id,
-                            client_id: 'abc123'
-                        }, {transaction: t});
-                    });
-                });
-            });
-        }).then(result => {
-            return result;
-        }).catch(err => {
-            console.log(err);
+
+        var user_data = await UserDB.create({
+            email: 'janedoe@mailinator.com',
+            password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
+        })
+
+        var user_2_data = await UserDB.create({
+            email: 'jasperdoe@mailinator.com',
+            password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
+        })
+
+        var authorization_code = await AuthorizationCodeDB.create({
+            email: 'jasperdoe@mailinator.com',
+            password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds)),
+            code: 'sample_authorization_code',
+            client_id: 'abc123',
+            redirectURI: 'https://www.google.com/',
+            ares_scope:  '*',
+            user_id: user_2_data.id
+        })
+
+        var date = new Date();
+        var expiration_date = date.setDate(date.getDate() - 1); 
+
+        var access_token = await AccessTokenDB.create({
+            token: 'expired_token',
+            expiration_date: expiration_date,
+            user_id: user_2_data.id,
+            client_id: 'abc123'
         });
+
+        var refresh_token = await RefreshTokenDB.create({
+            token: 'refresh_token',
+            client_id: 'abc123',
+            user_id: user_2_data.id,
+            access_token_id: access_token.id
+        });
+
+        var package = {
+            user_1: {
+                id: user_data.dataValues.id,
+                email: user_data.dataValues.token,
+                password: '123Password'
+            },
+            user_2: {
+                id: user_2_data.dataValues.id,
+                email: user_2_data.dataValues.token,
+                password: '123Password',
+                authorization_code: {
+                    id: authorization_code.dataValues.id,
+                    code: authorization_code.dataValues.code,
+                    client_id: authorization_code.dataValues.client_id,
+                    redirectURI: authorization_code.dataValues.redirectURI,
+                    ares_scope:  authorization_code.dataValues.ares_scope,
+                    access_token: {
+                        id: access_token.dataValues.id,
+                        token: access_token.dataValues.token,
+                        expiration_date: access_token.dataValues.expiration_date,
+                        client_id: access_token.dataValues.client_id,
+                        refresh_token : {
+                            token: refresh_token.dataValues.token,
+                            client_id: refresh_token.dataValues.client_id,
+                            user_id: refresh_token.dataValues.user_id,
+                            access_token_id: refresh_token.dataValues.access_token_id
+                        }
+                    }
+                }
+            }
+        }
+
+        return package;
     }
 
     async function remove_test_data() {
         await User.destroyByEmail("janedoe@mailinator.com", function(done) {});
+        await RefreshToken.destroyByToken("refresh_token", function(done) {});
         await AccessToken.destroyByToken("expired_token", function(done) {});
         await AuthorizationCode.destroyByCode("sample_authorization_code", function(done) {});
         await User.destroyByEmail("jasperdoe@mailinator.com", function(done) {});
+
+        //Destroy anything else created during flow
     }
 });

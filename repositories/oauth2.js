@@ -6,6 +6,7 @@ const utils = require('../utils');
 const expiration = require('../utils/expiration.js');
 const AuthorizationCode = require('../models/authorization_code.js');
 const AccessToken = require('../models/access_token.js');
+const RefreshToken = require('../models/refresh_token.js');
 const Client = require('../models/client.js');
 
 //Call createServer() to create a new OAuth 2.0 server. This instance exposes middleware that will be mounted in routes, as well as configuration options.
@@ -28,6 +29,8 @@ server.grant(oauth2orize.grant.code(function(client, redirectURI, user, ares, do
 // their response, which contains approved scope, duration, etc. as parsed by
 // the application. The application issues a token, which is bound to these
 // values.
+
+//Use this same endpoint to issue a token based on a refresh token
 server.grant(oauth2orize.grant.token((client, user, ares, done) => {
     const token = utils.getUid(256);
 
@@ -65,19 +68,53 @@ server.exchange(oauth2orize.exchange.code((client, code, redirectUri, done) => {
                 return done(null, false, { message: 'Sorry, Something Went Wrong.' });
             }
 
-            var expires_in = expiration.getExpiresInSeconds(expiration_date);
+            const refresh_token = utils.getUid(256);
+            RefreshToken.create(refresh_token, authCode.client_id, authCode.user_id, accessToken.id, function(refreshToken) {
+                var expires_in = expiration.getExpiresInSeconds(expiration_date);
 
-            var json_token = {
-                "token": accessToken.token,
-                "expires_in": expires_in,
-                "refresh_token": "QW434CCFF34r3cCFEcf"//TODO
-            }
-
-            return done(null, json_token);
+                var json_token = {
+                    "token": accessToken.token,
+                    "expires_in": expires_in,
+                    "refresh_token": refreshToken.token
+                }
+    
+                return done(null, json_token);
+            })
         })
     })
 }));
-  
+
+// Exchange refresh tokens for access tokens. 
+server.exchange(oauth2orize.exchange.refreshToken((client, refreshToken, done) => {
+
+    RefreshToken.findByToken(refreshToken.token, (refreshToken) => {
+        if (!refreshToken) return done(null, false, { message: 'Sorry, This Token is Not Correct' });
+        if (client.clientId !== refreshToken.client_id) return done(null, false, { message: 'Sorry, This Client is not correct' });
+
+        var date = new Date();
+        var expiration_date = expiration.setExpirationDate(date);
+
+        const token = utils.getUid(256);
+        AccessToken.create(token, expiration_date, refreshToken.user_id, client.clientId, function(accessToken) {
+            if (!accessToken) {
+                return done(null, false, { message: 'Sorry, Something Went Wrong.' });
+            }
+
+            const refresh_token = utils.getUid(256);
+            RefreshToken.create(refresh_token, client.clientId, refreshToken.user_id, accessToken.id, function(refreshToken) {
+                var expires_in = expiration.getExpiresInSeconds(expiration_date);
+
+                var json_token = {
+                    "token": accessToken.token,
+                    "expires_in": expires_in,
+                    "refresh_token": refreshToken.token
+                }
+    
+                return done(null, json_token);
+            })
+        })
+    });
+}));
 
 //When a client requests authorization, it will redirect the user to an authorization endpoint.
 //The server must authenticate the user and obtain their permission.
@@ -115,7 +152,10 @@ module.exports.decision = [
 // exchange middleware will be invoked to handle the request. Clients must
 // authenticate when making requests to this endpoint.
 module.exports.token = [
-    passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
+    passport.authenticate([
+        'basic',
+        'oauth2-client-password'
+    ], { session: false }),
     server.token(),
     server.errorHandler(),
 ];

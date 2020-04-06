@@ -7,6 +7,24 @@ const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const BasicStrategy = require('passport-http').BasicStrategy;
 const BearerStrategy = require('passport-http-bearer').Strategy;
+const RefreshTokenStrategy = require('passport-custom').Strategy;
+
+
+
+// const refreshTokenStrategy = new RefreshTokenStrategy((req, done) => {
+//     console.log("Testing 123...");
+  
+//     done(null, true);
+// });
+// module.exports = refreshTokenStrategy;
+passport.use('refresh-token-strategy', new RefreshTokenStrategy({
+    passReqToCallback: true
+},(req, done) => {
+    console.log("Testing");
+    console.log(req);
+    return done(null, true);
+}));
+
 
 /**
  * Configure the Local Strategy (uses email and password to authenticate)
@@ -80,6 +98,7 @@ passport.use('local-reset-password', new LocalStrategy({
         });
     });
 }));
+
 
 
 //Configure the Basic Strategy (uses Basic Auth, used in OAuth to verify clients)

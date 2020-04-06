@@ -5,7 +5,6 @@ This is a WIP, the features that are currently available are:
 * Authorization Grant, without Scopes, and only implemented with MySQL, without migrations
 
 Backlog of features to be implemented:
-* Issue Refresh token and use it to refresh a token
 * Scopes
 * Refactor generally
 * Doc Blocks
