@@ -1,6 +1,6 @@
 'use strict';
 
-let util = require('../../../utils/index.js');
+let util = require('../../../lib/utils/index.js');
 var assert = require('assert');
 
 describe('Test Utilities in Index', function() {

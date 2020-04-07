@@ -1,6 +1,6 @@
 'use strict';
 
-let expiration = require('../../../utils/expiration.js');
+let expiration = require('../../../lib/utils/expiration.js');
 var assert = require('assert');
 
 describe('Test Expiration Utilities', function() {

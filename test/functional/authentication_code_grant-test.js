@@ -3,17 +3,17 @@ var assert = require('assert');
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const should = chai.should();
-const app = require('../../index.js');
+const app = require('../../lib/index.js');
 const puppeteer = require('puppeteer');
-const User = require('../../models/user.js');
-const AccessToken = require('../../models/access_token.js');
-const AuthorizationCode = require('../../models/authorization_code.js');
-const RefreshToken = require('../../models/refresh_token.js');
+const User = require('../../lib/models/user.js');
+const AccessToken = require('../../lib/models/access_token.js');
+const AuthorizationCode = require('../../lib/models/authorization_code.js');
+const RefreshToken = require('../../lib/models/refresh_token.js');
 
-const UserDB = require('../../db/user.js');
-const AuthorizationCodeDB = require('../../db/authorization_code.js');
-const AccessTokenDB = require('../../db/access_token.js');
-const RefreshTokenDB = require('../../db/refresh_token.js');
+const UserDB = require('../../lib/db/user.js');
+const AuthorizationCodeDB = require('../../lib/db/authorization_code.js');
+const AccessTokenDB = require('../../lib/db/access_token.js');
+const RefreshTokenDB = require('../../lib/db/refresh_token.js');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const Sequelize = require('sequelize');
@@ -379,7 +379,5 @@ describe('Authentication Code Grant', function() {
         await AccessToken.destroyByToken("expired_token", function(done) {});
         await AuthorizationCode.destroyByCode("sample_authorization_code", function(done) {});
         await User.destroyByEmail("jasperdoe@mailinator.com", function(done) {});
-
-        //Destroy anything else created during flow
     }
 });
