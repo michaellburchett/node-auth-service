@@ -90,7 +90,7 @@ describe('Reset Passwords', function() {
                         
                 const text = await page.evaluate(() => document.querySelector('.message').textContent);
      
-                assert.equal(text,"Sorry, These passwords do not match.");
+                assert.equal(text,"Sorry, These Passwords Don't Match");
             })();
         }).timeout(10000);
 
@@ -105,7 +105,7 @@ describe('Reset Passwords', function() {
                         
                 const text = await page.evaluate(() => document.querySelector('.message').textContent);
      
-                assert.equal(text,"Sorry, Invalid URL.");
+                assert.equal(text,"Sorry, this URL is Invalid");
             })();
         }).timeout(10000);
 
@@ -120,7 +120,7 @@ describe('Reset Passwords', function() {
                         
                 const text = await page.evaluate(() => document.querySelector('.message').textContent);
      
-                assert.equal(text,"Sorry, This is not a valid email address.");
+                assert.equal(text,"Sorry, a user with that Email cannot be found");
             })();
         }).timeout(10000);
 
@@ -135,7 +135,7 @@ describe('Reset Passwords', function() {
                         
                 const text = await page.evaluate(() => document.querySelector('.message').textContent);
      
-                assert.equal(text,"Sorry, Invalid URL.");
+                assert.equal(text,"Sorry, this URL is Invalid");
             })();
         }).timeout(10000);
 
@@ -150,7 +150,7 @@ describe('Reset Passwords', function() {
                         
                 const text = await page.evaluate(() => document.querySelector('.message').textContent);
      
-                assert.equal(text,"Sorry, This request is expired. Please request a new email.");
+                assert.equal(text,"Sorry, This Request is Expired. Please Request a New Email");
             })();
         }).timeout(10000);
 
@@ -165,7 +165,7 @@ describe('Reset Passwords', function() {
                         
                 const text = await page.evaluate(() => document.querySelector('.message').textContent);
      
-                assert.equal(text,"Sorry, This token has already been used.");
+                assert.equal(text,"Sorry, This Token Has Already Been Used");
             })();
         }).timeout(10000);
     });

@@ -57,7 +57,7 @@ describe('Register Accounts', function() {
 
                 const text = await page.evaluate(() => document.querySelector('.message').textContent);
 
-                assert.equal(text,"Sorry, these passwords do not match");
+                assert.equal(text,"Sorry, These Passwords Don't Match");
             })();
         }).timeout(10000);
 
@@ -72,7 +72,7 @@ describe('Register Accounts', function() {
 
                 const text = await page.evaluate(() => document.querySelector('.message').textContent);
 
-                assert.equal(text,"Sorry, a user with that Email already exists");
+                assert.equal(text,"Sorry, A User With That Email Already Exists");
             })();
         }).timeout(10000);
     });

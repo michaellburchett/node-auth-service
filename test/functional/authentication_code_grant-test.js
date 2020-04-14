@@ -185,7 +185,7 @@ describe('Authentication Code Grant', function() {
 
                 const text = await page.evaluate(() => document.querySelector('.message').textContent);
 
-                assert.equal(text,"Sorry, these is no account with that Email and Password");
+                assert.equal(text,"Sorry, a user with that Email cannot be found");
             })();
         }).timeout(10000);
 

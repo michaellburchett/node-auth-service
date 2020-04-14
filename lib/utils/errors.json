@@ -1,4 +1,12 @@
 {
     "generic": "Oops, Something Went Wrong",
-    "missingEmail": "Sorry, a user with that Email cannot be found"
+    "missingEmail": "Sorry, a user with that Email cannot be found",
+    "wrongToken": "Sorry, This Token is Not Correct",
+    "wrongClient": "Sorry, This Client is Not Correct",
+    "passwordsNotMatching": "Sorry, These Passwords Don't Match",
+    "takenEmail": "Sorry, A User With That Email Already Exists",
+    "invalidURL": "Sorry, this URL is Invalid",
+    "tokenUsed": "Sorry, This Token Has Already Been Used",
+    "tokenExpired": "Sorry, This Token Is Expired. Please Request Another One",
+    "expiredEmail": "Sorry, This Request is Expired. Please Request a New Email"
 }
