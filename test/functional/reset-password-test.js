@@ -9,8 +9,6 @@ const puppeteer = require('puppeteer');
 const User = require('../../lib/models/user.js');
 const ResetPasswordToken = require('../../lib/models/reset_password_token.js');
 
-const UserDB = require('../../lib/db/user.js');
-const ResetPasswordTokenDB = require('../../lib/db/reset_password_token.js');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const Sequelize = require('sequelize');
@@ -178,7 +176,7 @@ describe('Reset Passwords', function() {
 
     async function add_test_data() {
 
-        var user_data = await UserDB.create({
+        var user_data = await (new User).create({
             email: 'jacobdoe@mailinator.com',
             password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
         })
@@ -186,47 +184,47 @@ describe('Reset Passwords', function() {
         var date = new Date();
         var expiration_date = date.setDate(date.getDate() + 1); 
 
-        var working_token_data = await ResetPasswordTokenDB.create({
+        var working_token_data = await (new ResetPasswordToken).create({
             token: 'working_reset_code',
             expiration_date: expiration_date,
             is_used: false,
-            user_id: user_data.dataValues.id
+            user_id: user_data.id
         });
 
-        var used_token_data = await ResetPasswordTokenDB.create({
+        var used_token_data = await (new ResetPasswordToken).create({
             token: 'used_reset_code',
             expiration_date: expiration_date,
             is_used: true,
-            user_id: user_data.dataValues.id
+            user_id: user_data.id
         });
 
         var expiration_date = date.setDate(date.getDate() - 2); 
 
-        var expired_token_data = await ResetPasswordTokenDB.create({
+        var expired_token_data = await (new ResetPasswordToken).create({
             token: 'expired_reset_code',
             expiration_date: expiration_date,
             is_used: false,
-            user_id: user_data.dataValues.id
+            user_id: user_data.id
         });
 
         var package = {
-            user_id: user_data.dataValues.id,
-            user_email: user_data.dataValues.email,
+            user_id: user_data.id,
+            user_email: user_data.email,
             user_password: '123Password',
             working_token: {
-                token: working_token_data.dataValues.token,
-                expiration_date: working_token_data.dataValues.expiration_date,
-                is_used: working_token_data.dataValues.is_used
+                token: working_token_data.token,
+                expiration_date: working_token_data.expiration_date,
+                is_used: working_token_data.is_used
             },
             used_token: {
-                token: used_token_data.dataValues.token,
-                expiration_date: used_token_data.dataValues.expiration_date,
-                is_used: used_token_data.dataValues.is_used
+                token: used_token_data.token,
+                expiration_date: used_token_data.expiration_date,
+                is_used: used_token_data.is_used
             },
             expired_token: {
-                token: expired_token_data.dataValues.token,
-                expiration_date: expired_token_data.dataValues.expiration_date,
-                is_used: expired_token_data.dataValues.is_used
+                token: expired_token_data.token,
+                expiration_date: expired_token_data.expiration_date,
+                is_used: expired_token_data.is_used
             }
         }
 
@@ -234,9 +232,11 @@ describe('Reset Passwords', function() {
     }
 
     async function remove_test_data() {
-        await ResetPasswordToken.destroyByToken(test_data.working_token.token, function(done) {});
-        await ResetPasswordToken.destroyByToken(test_data.used_token.token, function(done) {});
-        await ResetPasswordToken.destroyByToken(test_data.expired_token.token, function(done) {});
-        await User.destroyByEmail(test_data.user_email, function(done) {});
+
+
+        await (new ResetPasswordToken).deleteByField("token",test_data.working_token.token);
+        await (new ResetPasswordToken).deleteByField("token",test_data.used_token.token);
+        await (new ResetPasswordToken).deleteByField("token",test_data.expired_token.token);
+        await (new User).deleteByField("email",test_data.user_email);
     }
 });

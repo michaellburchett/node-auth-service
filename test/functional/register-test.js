@@ -4,7 +4,6 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const puppeteer = require('puppeteer');
 const User = require('../../lib/models/user.js');
-const UserDB = require('../../lib/db/user.js');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const Sequelize = require('sequelize');
@@ -37,9 +36,8 @@ describe('Register Accounts', function() {
                 await page.$eval('input[name=passwordverification]', el => el.value = '123Password');
                 await page.click('input[type="submit"]');
 
-                await User.getByEmail('jerrydoe@mailinator.com', (user) => {
-                    assert.equal(user.email,'jerrydoe@mailinator.com');
-                })
+                var user = await (new User).fetchByField("email","jerrydoe@mailinator.com");
+                assert.equal(user.email,'jerrydoe@mailinator.com');
             })();
         }).timeout(10000);
     });
@@ -84,20 +82,24 @@ describe('Register Accounts', function() {
     })
 
     async function add_test_data() {
-        return await sequelize.transaction(async t => {
-            return await UserDB.create({
-              email: 'jamesdoe@mailinator.com',
-              password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
-            }, {transaction: t}).then(result => {
-                return result;
-            }).catch(err => {
-                console.log(err);
-            });
-        });
+
+        var user_data = await (new User).create({
+            email: 'jamesdoe@mailinator.com',
+            password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
+        })
+        var package = {
+            user_1: {
+                id: user_data.id,
+                email: user_data.token,
+                password: '123Password'
+            }
+        }
+
+        return package;
     }
 
     async function remove_test_data() {
-        await User.destroyByEmail("jerrydoe@mailinator.com", function(done) {});
-        await User.destroyByEmail("jamesdoe@mailinator.com", function(done) {});
+        await (new User).deleteByField("email","jerrydoe@mailinator.com");
+        await (new User).deleteByField("email","jamesdoe@mailinator.com");
     }
 });

@@ -10,10 +10,6 @@ const AccessToken = require('../../lib/models/access_token.js');
 const AuthorizationCode = require('../../lib/models/authorization_code.js');
 const RefreshToken = require('../../lib/models/refresh_token.js');
 
-const UserDB = require('../../lib/db/user.js');
-const AuthorizationCodeDB = require('../../lib/db/authorization_code.js');
-const AccessTokenDB = require('../../lib/db/access_token.js');
-const RefreshTokenDB = require('../../lib/db/refresh_token.js');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const Sequelize = require('sequelize');
@@ -79,7 +75,9 @@ describe('Authentication Code Grant', function() {
                 (code.length > 0) ? code_exists = true : code_exists = false;
 
                 assert(code_exists);
-                await AuthorizationCode.destroyByCode(code, function(done) {});
+
+
+                await (new AuthorizationCode).deleteByField("code",code);
             })();
         }).timeout(10000);
 
@@ -104,9 +102,10 @@ describe('Authentication Code Grant', function() {
                 .end(async (err, res) => {
                     res.should.have.status(200);
                     assert(res.body.access_token.token);
-                    await AuthorizationCode.destroyByCode(code, function(done) {});
-                    await RefreshToken.destroyByToken(res.body.access_token.refresh_token, function(done) {});
-                    await AccessToken.destroyByToken(res.body.access_token.token, function(done) {});
+
+                    await (new AuthorizationCode).deleteByField("code",code);
+                    await (new RefreshToken).deleteByField("token",res.body.access_token.refresh_token);
+                    await (new AccessToken).deleteByField("token",res.body.access_token.token);
                 });
             })();
         }).timeout(10000);
@@ -136,9 +135,11 @@ describe('Authentication Code Grant', function() {
                     .set("Authorization", "Bearer " + res.body.access_token.token)
                     .end(async (error, response) => {
                         response.should.have.status(200);
-                        await AuthorizationCode.destroyByCode(code, function(done) {});
-                        await RefreshToken.destroyByToken(res.body.access_token.refresh_token, function(done) {});
-                        await AccessToken.destroyByToken(res.body.access_token.token, function(done) {});
+
+
+                        await (new AuthorizationCode).deleteByField("code",code);
+                        await (new RefreshToken).deleteByField("token",res.body.access_token.refresh_token);
+                        await (new AccessToken).deleteByField("token",res.body.access_token.token);
                     });
                 });
             })();
@@ -158,8 +159,9 @@ describe('Authentication Code Grant', function() {
                 .set("Authorization", "Bearer " + res.body.access_token.token)
                 .end(async (error, response) => {
                     response.should.have.status(200);
-                    await RefreshToken.destroyByToken(res.body.access_token.refresh_token, function(done) {});
-                    await AccessToken.destroyByToken(res.body.access_token.token, function(done) {});
+
+                    await (new RefreshToken).deleteByField("token",res.body.access_token.refresh_token);
+                    await (new AccessToken).deleteByField("token",res.body.access_token.token);
                 });
             });
         }).timeout(10000);
@@ -185,7 +187,7 @@ describe('Authentication Code Grant', function() {
 
                 const text = await page.evaluate(() => document.querySelector('.message').textContent);
 
-                assert.equal(text,"Sorry, a user with that Email cannot be found");
+                assert.equal(text,"Sorry, These Passwords Don't Match");
             })();
         }).timeout(10000);
 
@@ -224,9 +226,10 @@ describe('Authentication Code Grant', function() {
                     code: code,
                     redirect_uri: 'https://www.google.com/'
                 })
-                .end((err, res) => {
+                .end(async (err, res) => {
                     res.should.have.status(500);
-                    AuthorizationCode.destroyByCode(code, function(done) {});
+
+                    await (new AuthorizationCode).deleteByField("code",code);
                 });
             })();
         }).timeout(10000);
@@ -249,9 +252,10 @@ describe('Authentication Code Grant', function() {
                     code: code,
                     redirect_uri: 'https://www.google.com/'
                 })
-                .end((err, res) => {
+                .end(async (err, res) => {
                     res.should.have.status(500);
-                    AuthorizationCode.destroyByCode(code, function(done) {});
+
+                    await (new AuthorizationCode).deleteByField("code",code);
                 });
             })();
         }).timeout(10000);
@@ -280,14 +284,12 @@ describe('Authentication Code Grant', function() {
         });
 
         it('should protect the user info endpoint if an expired access token is given', async function() {
-            AccessToken.findByToken('expired_token', function(token) {
-                chai.request(app)
+            chai.request(app)
                 .get('/api/userinfo')
                 .set("Authorization", "Bearer " + test_data.user_2.authorization_code.access_token)
                 .end((error, response) => {
                     response.should.have.status(400);
                 });
-            });
         });
 
         after(async () => {
@@ -301,17 +303,17 @@ describe('Authentication Code Grant', function() {
 
     async function add_test_data() {
 
-        var user_data = await UserDB.create({
+        var user_data = await (new User).create({
             email: 'janedoe@mailinator.com',
             password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
         })
 
-        var user_2_data = await UserDB.create({
+        var user_2_data = await (new User).create({
             email: 'jasperdoe@mailinator.com',
             password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
         })
 
-        var authorization_code = await AuthorizationCodeDB.create({
+        var authorization_code = await (new AuthorizationCode).create({
             email: 'jasperdoe@mailinator.com',
             password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds)),
             code: 'sample_authorization_code',
@@ -324,14 +326,14 @@ describe('Authentication Code Grant', function() {
         var date = new Date();
         var expiration_date = date.setDate(date.getDate() - 1); 
 
-        var access_token = await AccessTokenDB.create({
+        var access_token = await (new AccessToken).create({
             token: 'expired_token',
             expiration_date: expiration_date,
             user_id: user_2_data.id,
             client_id: 'abc123'
         });
 
-        var refresh_token = await RefreshTokenDB.create({
+        var refresh_token = await (new RefreshToken).create({
             token: 'refresh_token',
             client_id: 'abc123',
             user_id: user_2_data.id,
@@ -340,30 +342,30 @@ describe('Authentication Code Grant', function() {
 
         var package = {
             user_1: {
-                id: user_data.dataValues.id,
-                email: user_data.dataValues.token,
+                id: user_data.id,
+                email: user_data.token,
                 password: '123Password'
             },
             user_2: {
-                id: user_2_data.dataValues.id,
-                email: user_2_data.dataValues.token,
+                id: user_2_data.id,
+                email: user_2_data.token,
                 password: '123Password',
                 authorization_code: {
-                    id: authorization_code.dataValues.id,
-                    code: authorization_code.dataValues.code,
-                    client_id: authorization_code.dataValues.client_id,
-                    redirectURI: authorization_code.dataValues.redirectURI,
-                    ares_scope:  authorization_code.dataValues.ares_scope,
+                    id: authorization_code.id,
+                    code: authorization_code.code,
+                    client_id: authorization_code.client_id,
+                    redirectURI: authorization_code.redirectURI,
+                    ares_scope:  authorization_code.ares_scope,
                     access_token: {
-                        id: access_token.dataValues.id,
-                        token: access_token.dataValues.token,
-                        expiration_date: access_token.dataValues.expiration_date,
-                        client_id: access_token.dataValues.client_id,
+                        id: access_token.id,
+                        token: access_token.token,
+                        expiration_date: access_token.expiration_date,
+                        client_id: access_token.client_id,
                         refresh_token : {
-                            token: refresh_token.dataValues.token,
-                            client_id: refresh_token.dataValues.client_id,
-                            user_id: refresh_token.dataValues.user_id,
-                            access_token_id: refresh_token.dataValues.access_token_id
+                            token: refresh_token.token,
+                            client_id: refresh_token.client_id,
+                            user_id: refresh_token.user_id,
+                            access_token_id: refresh_token.access_token_id
                         }
                     }
                 }
@@ -374,10 +376,11 @@ describe('Authentication Code Grant', function() {
     }
 
     async function remove_test_data() {
-        await User.destroyByEmail("janedoe@mailinator.com", function(done) {});
-        await RefreshToken.destroyByToken("refresh_token", function(done) {});
-        await AccessToken.destroyByToken("expired_token", function(done) {});
-        await AuthorizationCode.destroyByCode("sample_authorization_code", function(done) {});
-        await User.destroyByEmail("jasperdoe@mailinator.com", function(done) {});
+
+        await (new User).deleteByField("email","janedoe@mailinator.com");
+        await (new RefreshToken).deleteByField("token","refresh_token");
+        await (new AccessToken).deleteByField("token","expired_token");
+        await (new AuthorizationCode).deleteByField("code","sample_authorization_code");
+        await (new User).deleteByField("email","jasperdoe@mailinator.com");
     }
 });

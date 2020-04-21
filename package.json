@@ -4,7 +4,7 @@
   "description": "OAuth2 Auth Service written in Node JS",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node lib/index.js",
     "test": "mocha 'test/**/*.js'"
   },
   "author": "Michael Burchett",
