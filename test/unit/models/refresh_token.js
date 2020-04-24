@@ -48,8 +48,8 @@ describe('Test Successful RefreshToken Functions', function() {
 
     describe('updateByField', function() {
         it('should update a RefreshToken by search field and value, and update based on update field and value', async function() {
-            var token = await (new RefreshToken).updateByField("token","testing_addition","token","testing_updated");
-            assert.equal(token.token, "testing_updated");
+            var token = await (new RefreshToken).updateByField("token","testing_update","token","testing_update_updated");
+            assert.equal(token.token, "testing_update_updated");
         });
     });
 
@@ -62,7 +62,7 @@ describe('Test Successful RefreshToken Functions', function() {
 
     describe('deleteByField', function() {
         it('should delete a RefreshToken by field and value and return true', async function() {
-            var success = await (new RefreshToken).deleteByField("client_id","abc123");
+            var success = await (new RefreshToken).deleteByField("token","testing_addition");
             assert.equal(success, true);
         });
     });

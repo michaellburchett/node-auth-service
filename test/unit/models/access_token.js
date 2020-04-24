@@ -43,15 +43,15 @@ describe('Test Successful AccessToken Functions', function() {
 
     describe('update', function() {
         it('should update a AccessToken by ID', async function() {
-            var token = await (new AccessToken).update(test_data.user_1.token.id,"token","testing_addition");
-            assert.equal(token.token, "testing_addition");
+            var token = await (new AccessToken).update(test_data.user_1.token.id,"token","testing_updated");
+            assert.equal(token.token, "testing_updated");
         });
     });
 
     describe('updateByField', function() {
         it('should update a AccessToken by search field and value, and update based on update field and value', async function() {
-            var token = await (new AccessToken).updateByField("token","testing_addition","token","testing_addition_updated");
-            assert.equal(token.token, "testing_addition_updated");
+            var token = await (new AccessToken).updateByField("token","testing_updated","token","testing_updated_updated");
+            assert.equal(token.token, "testing_updated_updated");
         });
     });
 
@@ -64,7 +64,7 @@ describe('Test Successful AccessToken Functions', function() {
 
     describe('deleteByField', function() {
         it('should delete a AccessToken by field and value and return true', async function() {
-            var success = await (new AccessToken).deleteByField("client_id","abc123");
+            var success = await (new AccessToken).deleteByField("token","testing_addition");
             assert.equal(success, true);
         });
     });
