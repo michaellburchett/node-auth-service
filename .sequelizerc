@@ -1,0 +1,7 @@
+//access_tokens
+const path = require('path');
+
+module.exports = {
+  'config': path.resolve('lib/migrations/sql', 'config.js'),
+  'migrations-path': path.resolve('lib/migrations/sql', 'migrations')
+}

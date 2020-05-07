@@ -1,3 +1,9 @@
 {
-    "database": "mysql"
+    "database": "mysql",
+    "grantsAvailable": {
+        "Authorization": true,
+        "Implicit": true,
+        "ClientCredentials": false,
+        "UsernamePassword": false
+    }
 }
