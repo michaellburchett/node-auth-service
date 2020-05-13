@@ -7,6 +7,14 @@
       "clientSecret": "ssh-secret", 
       "isTrusted": true, 
       "redirectURI": "https://www.google.com/"
+    },
+    {
+      "id": "2", 
+      "name": "NewSample", 
+      "clientId": "client456", 
+      "clientSecret": "itsa-secret", 
+      "isTrusted": true, 
+      "redirectURI": "https://www.google.com/"
     }
   ]
 }

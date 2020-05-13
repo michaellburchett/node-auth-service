@@ -2,7 +2,6 @@ var assert = require('assert');
 
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-const should = chai.should();
 const app = require('../../lib/index.js');
 const puppeteer = require('puppeteer');
 const User = require('../../lib/models/user.js');
@@ -11,13 +10,6 @@ const RefreshToken = require('../../lib/models/refresh_token.js');
 
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-const Sequelize = require('sequelize');
-const sequelize = new Sequelize(process.env.DB_DATABASE, process.env.DB_USER, process.env.DB_PASS, {
-    host: process.env.DB_HOST,
-    dialect: 'mysql',
-    logging: false
-});
-
 
 chai.use(chaiHttp);
 var expect = chai.expect;
@@ -47,7 +39,7 @@ describe('Implicit Grant', function() {
         });
 
         it('should send a user to the Decision page after a successful login', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=token&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jacklyndoe@mailinator.com');
@@ -61,7 +53,7 @@ describe('Implicit Grant', function() {
         }).timeout(10000);
 
         it('should send a user a code if they Accept the decision', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=token&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name="accept"]');
                 await page.click('input[name="accept"]');
@@ -85,7 +77,7 @@ describe('Implicit Grant', function() {
         }).timeout(10000);
 
         it('should successfully authenticate the user info endpoint with a valid access token', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=token&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name="accept"]');
                 await page.click('input[name="accept"]');

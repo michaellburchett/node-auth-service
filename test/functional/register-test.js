@@ -6,15 +6,8 @@ const puppeteer = require('puppeteer');
 const User = require('../../lib/models/user.js');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-const Sequelize = require('sequelize');
-const sequelize = new Sequelize(process.env.DB_DATABASE, process.env.DB_USER, process.env.DB_PASS, {
-    host: process.env.DB_HOST,
-    dialect: 'mysql',
-    logging: false
-});
 
 chai.use(chaiHttp);
-var expect = chai.expect;
 
 describe('Register Accounts', function() {
 
@@ -28,7 +21,7 @@ describe('Register Accounts', function() {
     describe('registration success', function() {
 
         it('should successfully register an account', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/register');
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jerrydoe@mailinator.com');
@@ -45,7 +38,7 @@ describe('Register Accounts', function() {
     describe('registration failure', function() {
 
         it('should not register an account is passwords do not match', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/register');
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jimdoe@mailinator.com');
@@ -60,7 +53,7 @@ describe('Register Accounts', function() {
         }).timeout(10000);
 
         it('should not register an account is a user with that email already exists', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/register');
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jamesdoe@mailinator.com');

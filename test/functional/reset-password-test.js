@@ -2,22 +2,12 @@ var assert = require('assert');
 
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-const mockery = require('mockery');
-const nodemailerMock = require('nodemailer-mock');
-const app = require('../../lib/index.js');
 const puppeteer = require('puppeteer');
 const User = require('../../lib/models/user.js');
 const ResetPasswordToken = require('../../lib/models/reset_password_token.js');
 
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-const Sequelize = require('sequelize');
-const sequelize = new Sequelize(process.env.DB_DATABASE, process.env.DB_USER, process.env.DB_PASS, {
-    host: process.env.DB_HOST,
-    dialect: 'mysql',
-    logging: false
-});
-
 
 chai.use(chaiHttp);
 
@@ -34,7 +24,7 @@ describe('Reset Passwords', function() {
 
 
         it('should successfully display the reset password page when using a valid token', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/reset-password?user_id=' + test_data.user_id + '&reset_password_token=' + test_data.working_token.token);
                 await page.waitFor('input[name=email]');
                         
@@ -45,7 +35,7 @@ describe('Reset Passwords', function() {
         }).timeout(10000);
 
         it('should successfully log a user in when their password is reset successfully', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/reset-password?user_id=' + test_data.user_id + '&reset_password_token=' + test_data.working_token.token);
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jacobdoe@mailinator.com');
@@ -65,7 +55,7 @@ describe('Reset Passwords', function() {
     describe('reset password failure', function() {
 
         it('should not send an email if the user is not an actual user', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/forgot-password');
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jeremydoe@mailinator.com');
@@ -78,7 +68,7 @@ describe('Reset Passwords', function() {
         }).timeout(10000);
 
         it('should not reset the passwords if they do not match', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/reset-password?user_id=' + test_data.user_id + '&reset_password_token=' + test_data.working_token.token);
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jacobdoe@mailinator.com');
@@ -93,7 +83,7 @@ describe('Reset Passwords', function() {
         }).timeout(10000);
 
         it('should not reset the passwords if the user id is not valid', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/reset-password?user_id=38457385777678678676&reset_password_token=' + test_data.working_token.token);
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jacobdoe@mailinator.com');
@@ -108,7 +98,7 @@ describe('Reset Passwords', function() {
         }).timeout(10000);
 
         it('should not reset the passwords if the user email is not valid', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/reset-password?user_id=' + test_data.user_id + '&reset_password_token=' + test_data.working_token.token);
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jacobdoe2@mailinator.com');
@@ -138,7 +128,7 @@ describe('Reset Passwords', function() {
         }).timeout(10000);
 
         it('should not reset the passwords if the reset password token is expired', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/reset-password?user_id=' + test_data.user_id + '&reset_password_token=' + test_data.expired_token.token);
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jacobdoe@mailinator.com');
@@ -153,7 +143,7 @@ describe('Reset Passwords', function() {
         }).timeout(10000);
 
         it('should not reset the passwords if the reset password token is already used', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/reset-password?user_id=' + test_data.user_id + '&reset_password_token=' + test_data.used_token.token);
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jacobdoe@mailinator.com');
