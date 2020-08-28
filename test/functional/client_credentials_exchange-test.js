@@ -5,7 +5,9 @@ const chaiHttp = require('chai-http');
 const app = require('../../lib/index.js');
 const User = require('../../lib/models/user.js');
 const AccessToken = require('../../lib/models/access_token.js');
+const AccessTokenOwnership = require('../../lib/models/access_token_ownership.js');
 const RefreshToken = require('../../lib/models/refresh_token.js');
+const faker = require('faker');
 
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
@@ -31,7 +33,10 @@ describe('Client Credentials Exchange', function() {
                 res.should.have.status(200);
                 assert(res.body.access_token);
 
+                var token = await (new AccessToken).fetchByField("token",res.body.access_token.token);
+                
                 await (new RefreshToken).deleteByField("token",res.body.access_token.refresh_token);
+                await (new AccessTokenOwnership).deleteByField("access_token_id",token.id);
                 await (new AccessToken).deleteByField("token",res.body.access_token.token);
             });
         }).timeout(10000);
@@ -70,16 +75,18 @@ describe('Client Credentials Exchange', function() {
 
     async function add_test_data() {
 
+        var password = faker.hacker.noun();
+
         var user_data = await (new User).create({
-            email: 'jansportdoe@mailinator.com',
-            password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
+            email: faker.internet.email(),
+            password: bcrypt.hashSync(password, bcrypt.genSaltSync(saltRounds))
         })
 
         var package = {
             user: {
                 id: user_data.id,
                 email: user_data.email,
-                password: '123Password'
+                password: password
             }
         }
 
@@ -87,6 +94,6 @@ describe('Client Credentials Exchange', function() {
     }
 
     async function remove_test_data() {
-        await (new User).deleteByField("email","jansportdoe@mailinator.com");
+        await (new User).deleteByField("email",test_data.user.email);
     }
 });

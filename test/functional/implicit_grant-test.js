@@ -6,7 +6,9 @@ const app = require('../../lib/index.js');
 const puppeteer = require('puppeteer');
 const User = require('../../lib/models/user.js');
 const AccessToken = require('../../lib/models/access_token.js');
+const AccessTokenOwnership = require('../../lib/models/access_token_ownership.js');
 const RefreshToken = require('../../lib/models/refresh_token.js');
+const faker = require('faker');
 
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
@@ -42,8 +44,12 @@ describe('Implicit Grant', function() {
             await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=token&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name=email]');
-                await page.$eval('input[name=email]', el => el.value = 'jacklyndoe@mailinator.com');
-                await page.$eval('input[name=password]', el => el.value = '123Password');
+
+                await page.$eval('input[name=email]', (el, value) => el.value = value, test_data.user.email);
+                await page.$eval('input[name=password]', (el, value) => el.value = value, test_data.user.password);
+
+
+
                 await page.click('input[type="submit"]');
 
                 const text = await page.evaluate(() => document.querySelector('.hello').textContent);
@@ -72,6 +78,7 @@ describe('Implicit Grant', function() {
                 var access_token = await (new AccessToken).fetchByField("token",token);
                 var refresh_token = await (new RefreshToken).fetchByField("access_token_id",access_token.id);
                 await (new RefreshToken).delete(refresh_token.id);
+                await (new AccessTokenOwnership).deleteByField("access_token_id",access_token.id);
                 await (new AccessToken).delete(access_token.id);
             })();
         }).timeout(10000);
@@ -98,6 +105,7 @@ describe('Implicit Grant', function() {
                     var access_token = await (new AccessToken).fetchByField("token",token);
                     var refresh_token = await (new RefreshToken).fetchByField("access_token_id",access_token.id);
                     await (new RefreshToken).delete(refresh_token.id);
+                    await (new AccessTokenOwnership).deleteByField("access_token_id",access_token.id);
                     await (new AccessToken).delete(access_token.id);
                 });
             })();
@@ -115,7 +123,10 @@ describe('Implicit Grant', function() {
 
                 assert.ok(res.body.access_token.token);
 
+                var access_token = await (new AccessToken).fetchByField("token",res.body.access_token.token);
+
                 await (new RefreshToken).deleteByField("token",res.body.access_token.refresh_token);
+                await (new AccessTokenOwnership).deleteByField("access_token_id",access_token.id);
                 await (new AccessToken).deleteByField("token",res.body.access_token.token);
             });
         }).timeout(10000);
@@ -178,8 +189,8 @@ describe('Implicit Grant', function() {
 
     async function remove_test_data() {
 
-        await (new User).deleteByField("email","jacklyndoe@mailinator.com");
-        await (new RefreshToken).deleteByField("token","a_refresh_token");
-        await (new AccessToken).deleteByField("token","an_access_token");
+        await (new User).deleteByField("email",test_data.user.email);
+        await (new RefreshToken).deleteByField("token",test_data.user.access_token.refresh_token.token);
+        await (new AccessToken).deleteByField("token",test_data.user.access_token.token);
     }
 });

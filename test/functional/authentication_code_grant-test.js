@@ -7,8 +7,10 @@ const app = require('../../lib/index.js');
 const puppeteer = require('puppeteer');
 const User = require('../../lib/models/user.js');
 const AccessToken = require('../../lib/models/access_token.js');
+const AccessTokenOwnership = require('../../lib/models/access_token_ownership.js');
 const AuthorizationCode = require('../../lib/models/authorization_code.js');
 const RefreshToken = require('../../lib/models/refresh_token.js');
+const faker = require('faker');
 
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
@@ -41,11 +43,11 @@ describe('Authentication Code Grant', function() {
         });
 
         it('should send a user to the Decision page after a successful login', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name=email]');
-                await page.$eval('input[name=email]', el => el.value = 'janedoe@mailinator.com');
-                await page.$eval('input[name=password]', el => el.value = '123Password');
+                await page.$eval('input[name=email]', (el, value) => el.value = value, test_data.user_1.email);
+                await page.$eval('input[name=password]', (el, value) => el.value = value, test_data.user_1.password);
                 await page.click('input[type="submit"]');
 
                 const text = await page.evaluate(() => document.querySelector('.hello').textContent);
@@ -55,7 +57,7 @@ describe('Authentication Code Grant', function() {
         }).timeout(10000);
 
         it('should send a user a code if they Accept the decision', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name="accept"]');
                 await page.click('input[name="accept"]');
@@ -75,7 +77,7 @@ describe('Authentication Code Grant', function() {
         }).timeout(10000);
 
         it('should give an access token for a valid code', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name="accept"]');
                 await page.click('input[name="accept"]');
@@ -96,15 +98,18 @@ describe('Authentication Code Grant', function() {
                     res.should.have.status(200);
                     assert(res.body.access_token.token);
 
+                    var token = await (new AccessToken).fetchByField("token",res.body.access_token.token);
+
                     await (new AuthorizationCode).deleteByField("code",code);
                     await (new RefreshToken).deleteByField("token",res.body.access_token.refresh_token);
+                    await (new AccessTokenOwnership).deleteByField("access_token_id",token.id);
                     await (new AccessToken).deleteByField("token",res.body.access_token.token);
                 });
             })();
         }).timeout(10000);
 
         it('should successfully authenticate the user info endpoint with a valid access token', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name="accept"]');
                 await page.click('input[name="accept"]');
@@ -129,9 +134,11 @@ describe('Authentication Code Grant', function() {
                     .end(async (error, response) => {
                         response.should.have.status(200);
 
+                        var token = await (new AccessToken).fetchByField("token",res.body.access_token.token);
 
                         await (new AuthorizationCode).deleteByField("code",code);
                         await (new RefreshToken).deleteByField("token",res.body.access_token.refresh_token);
+                        await (new AccessTokenOwnership).deleteByField("access_token_id",token.id);
                         await (new AccessToken).deleteByField("token",res.body.access_token.token);
                     });
                 });
@@ -153,10 +160,95 @@ describe('Authentication Code Grant', function() {
                 .end(async (error, response) => {
                     response.should.have.status(200);
 
+                    var token = await (new AccessToken).fetchByField("token",res.body.access_token.token);
+                    
                     await (new RefreshToken).deleteByField("token",res.body.access_token.refresh_token);
+                    await (new AccessTokenOwnership).deleteByField("access_token_id",token.id);
                     await (new AccessToken).deleteByField("token",res.body.access_token.token);
                 });
             });
+        }).timeout(10000);
+
+        it('should successfully log a user out', async function() {
+            await (async () => {
+                await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
+                await page.waitFor('input[name="accept"]');
+                await page.click('input[name="accept"]');
+
+                const pageUrl = page.url();
+
+                const string = pageUrl.split("code=");
+                const code = string[1];
+
+                chai.request(app)
+                .post('/oauth/token')
+                .auth('abc123', 'ssh-secret')
+                .send({
+                    grant_type: 'authorization_code', 
+                    code: code,
+                    redirect_uri: 'https://www.google.com/'
+                })
+                .end((err, res) => {
+                    chai.request(app)
+                    .get('/api/userinfo')
+                    .set("Authorization", "Bearer " + res.body.access_token.token)
+                    .end(async (error, response) => {
+                        chai.request(app)
+                        .post('/logout')
+                        .set("Authorization", "Bearer " + res.body.access_token.token)
+                        .end(async (logout_error, logout_response) => {
+
+                            assert.equal(logout_response.body,"Logout Successful!");
+
+                            await (new AuthorizationCode).deleteByField("code",code);
+                        });
+                    });
+                });
+            })();
+        }).timeout(10000);
+
+        it('should successfully not display user data if user logged out', async function() {
+            await (async () => {
+                await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
+                await page.waitFor('input[name="accept"]');
+                await page.click('input[name="accept"]');
+
+                const pageUrl = page.url();
+
+                const string = pageUrl.split("code=");
+                const code = string[1];
+
+                chai.request(app)
+                .post('/oauth/token')
+                .auth('abc123', 'ssh-secret')
+                .send({
+                    grant_type: 'authorization_code', 
+                    code: code,
+                    redirect_uri: 'https://www.google.com/'
+                })
+                .end((err, res) => {
+                    chai.request(app)
+                    .get('/api/userinfo')
+                    .set("Authorization", "Bearer " + res.body.access_token.token)
+                    .end(async (error, response) => {
+                        chai.request(app)
+                        .post('/logout')
+                        .set("Authorization", "Bearer " + res.body.access_token.token)
+                        .end(async (logout_error, logout_response) => {
+
+                            chai.request(app)
+                            .get('/api/userinfo')
+                            .set("Authorization", "Bearer " + res.body.access_token.token)
+                            .end(async (error, user_response) => {
+
+                                user_response.should.have.status(401);
+
+                                await (new AuthorizationCode).deleteByField("code",code);
+                            });
+                        });
+                    });
+                });
+            })();
         }).timeout(10000);
 
         after(async () => {
@@ -171,10 +263,10 @@ describe('Authentication Code Grant', function() {
         })
 
         it('should show the proper message when a user is using a wrong password', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name=email]');
-                await page.$eval('input[name=email]', el => el.value = 'jasperdoe@mailinator.com');
+                await page.$eval('input[name=email]', (el, value) => el.value = value, test_data.user_2.email);
                 await page.$eval('input[name=password]', el => el.value = '456Password');
                 await page.click('input[type="submit"]');
 
@@ -185,10 +277,10 @@ describe('Authentication Code Grant', function() {
         }).timeout(10000);
 
         it('should not send a user a code if they Deny the decision, and in fact should send an "access_denied" error', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
-                await page.$eval('input[name=email]', el => el.value = 'jasperdoe@mailinator.com');
-                await page.$eval('input[name=password]', el => el.value = '123Password');
+                await page.$eval('input[name=email]', (el, value) => el.value = value, test_data.user_2.email);
+                await page.$eval('input[name=password]', (el, value) => el.value = value, test_data.user_1.password);
                 await page.click('input[type="submit"]');
                 await page.waitFor('input[name="cancel"]');
                 await page.click('input[name="cancel"]');
@@ -202,7 +294,7 @@ describe('Authentication Code Grant', function() {
         }).timeout(10000);
 
         it('should not give an access token for a valid code but wrong client ID', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name="accept"]');
                 await page.click('input[name="accept"]');
@@ -228,7 +320,7 @@ describe('Authentication Code Grant', function() {
         }).timeout(10000);
 
         it('should not give an access token for a valid code and valid client ID but wrong client secret', async function() {
-            var text = await (async () => {
+            await (async () => {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.waitFor('input[name="accept"]');
                 await page.click('input[name="accept"]');
@@ -296,20 +388,22 @@ describe('Authentication Code Grant', function() {
 
     async function add_test_data() {
 
+        var password = faker.hacker.noun();
+
         var user_data = await (new User).create({
-            email: 'janedoe@mailinator.com',
-            password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
+            email: faker.internet.email(),
+            password: bcrypt.hashSync(password, bcrypt.genSaltSync(saltRounds))
         })
 
         var user_2_data = await (new User).create({
-            email: 'jasperdoe@mailinator.com',
-            password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds))
+            email: faker.internet.email(),
+            password: bcrypt.hashSync(password, bcrypt.genSaltSync(saltRounds))
         })
 
         var authorization_code = await (new AuthorizationCode).create({
-            email: 'jasperdoe@mailinator.com',
-            password: bcrypt.hashSync('123Password', bcrypt.genSaltSync(saltRounds)),
-            code: 'sample_authorization_code',
+            email: user_2_data.email,
+            password: bcrypt.hashSync(password, bcrypt.genSaltSync(saltRounds)),
+            code: faker.hacker.noun(),
             client_id: 'abc123',
             redirectURI: 'https://www.google.com/',
             ares_scope:  '*',
@@ -320,14 +414,14 @@ describe('Authentication Code Grant', function() {
         var expiration_date = date.setDate(date.getDate() - 1); 
 
         var access_token = await (new AccessToken).create({
-            token: 'expired_token',
+            token: faker.hacker.noun(),
             expiration_date: expiration_date,
             user_id: user_2_data.id,
             client_id: 'abc123'
         });
 
         var refresh_token = await (new RefreshToken).create({
-            token: 'refresh_token',
+            token: faker.hacker.noun(),
             client_id: 'abc123',
             user_id: user_2_data.id,
             access_token_id: access_token.id
@@ -336,13 +430,13 @@ describe('Authentication Code Grant', function() {
         var package = {
             user_1: {
                 id: user_data.id,
-                email: user_data.token,
-                password: '123Password'
+                email: user_data.email,
+                password: password
             },
             user_2: {
                 id: user_2_data.id,
-                email: user_2_data.token,
-                password: '123Password',
+                email: user_2_data.email,
+                password: password,
                 authorization_code: {
                     id: authorization_code.id,
                     code: authorization_code.code,
@@ -369,11 +463,10 @@ describe('Authentication Code Grant', function() {
     }
 
     async function remove_test_data() {
-
-        await (new User).deleteByField("email","janedoe@mailinator.com");
-        await (new RefreshToken).deleteByField("token","refresh_token");
-        await (new AccessToken).deleteByField("token","expired_token");
-        await (new AuthorizationCode).deleteByField("code","sample_authorization_code");
-        await (new User).deleteByField("email","jasperdoe@mailinator.com");
+        await (new User).deleteByField("email",test_data.user_1.email);
+        await (new RefreshToken).deleteByField("token",test_data.user_2.authorization_code.access_token.refresh_token.token);
+        await (new AccessToken).deleteByField("token",test_data.user_2.authorization_code.access_token.token);
+        await (new AuthorizationCode).deleteByField("code",test_data.user_2.authorization_code.code);
+        await (new User).deleteByField("email",test_data.user_2.email);
     }
 });

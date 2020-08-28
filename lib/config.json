@@ -3,7 +3,8 @@
     "grantsAvailable": {
         "Authorization": true,
         "Implicit": true,
-        "ClientCredentials": false,
-        "UsernamePassword": false
-    }
+        "ClientCredentials": true,
+        "UsernamePassword": true
+    },
+    "autoAcceptDecision": false
 }

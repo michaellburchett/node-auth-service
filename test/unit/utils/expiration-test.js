@@ -22,7 +22,7 @@ describe('Test Expiration Utilities', function() {
 
       var expires_in_seconds = expiration.getExpiresInSeconds(date);
 
-      assert.equal(expires_in_seconds, 7776000);
+      assert.equal(expires_in_seconds, 7779600);
     });
   });
 

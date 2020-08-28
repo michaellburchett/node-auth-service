@@ -22,6 +22,7 @@ describe('Reset Passwords', function() {
 
     describe('reset password success', async function() {
 
+        //When asked to reset a password, give a token
 
         it('should successfully display the reset password page when using a valid token', async function() {
             await (async () => {
@@ -222,7 +223,6 @@ describe('Reset Passwords', function() {
     }
 
     async function remove_test_data() {
-
 
         await (new ResetPasswordToken).deleteByField("token",test_data.working_token.token);
         await (new ResetPasswordToken).deleteByField("token",test_data.used_token.token);

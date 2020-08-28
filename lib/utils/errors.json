@@ -1,6 +1,7 @@
 {
     "generic": "Oops, Something Went Wrong",
     "missingEmail": "Sorry, a user with that Email cannot be found",
+    "dontHavePermission": "Sorry, but you do not have permission to access all of the features you requested",
     "wrongToken": "Sorry, This Token is Not Correct",
     "wrongClient": "Sorry, This Client is Not Correct",
     "passwordsNotMatching": "Sorry, These Passwords Don't Match",

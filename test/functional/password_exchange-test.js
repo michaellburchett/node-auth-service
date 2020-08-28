@@ -5,6 +5,7 @@ const chaiHttp = require('chai-http');
 const app = require('../../lib/index.js');
 const User = require('../../lib/models/user.js');
 const AccessToken = require('../../lib/models/access_token.js');
+const AccessTokenOwnership = require('../../lib/models/access_token_ownership.js');
 const RefreshToken = require('../../lib/models/refresh_token.js');
 
 const bcrypt = require('bcrypt');
@@ -34,7 +35,10 @@ describe('Password Exchange', function() {
                 res.should.have.status(200);
                 assert(res.body.access_token);
 
+                var access_token = await (new AccessToken).fetchByField("token",res.body.access_token.token);
+
                 await (new RefreshToken).deleteByField("token",res.body.access_token.refresh_token);
+                await (new AccessTokenOwnership).deleteByField("access_token_id",access_token.id);
                 await (new AccessToken).deleteByField("token",res.body.access_token.token);
             });
         }).timeout(10000);
@@ -97,6 +101,6 @@ describe('Password Exchange', function() {
     }
 
     async function remove_test_data() {
-        await (new User).deleteByField("email","jacklindoe@mailinator.com");
+        await (new User).deleteByField("email",test_data.user.email);
     }
 });
