@@ -48,7 +48,7 @@ describe('Authentication Code Grant', function() {
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', (el, value) => el.value = value, test_data.user_1.email);
                 await page.$eval('input[name=password]', (el, value) => el.value = value, test_data.user_1.password);
-                await page.click('input[type="submit"]');
+                await page.click('button[type="submit"]');
 
                 const text = await page.evaluate(() => document.querySelector('.hello').textContent);
 
@@ -268,9 +268,9 @@ describe('Authentication Code Grant', function() {
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', (el, value) => el.value = value, test_data.user_2.email);
                 await page.$eval('input[name=password]', el => el.value = '456Password');
-                await page.click('input[type="submit"]');
+                await page.click('button[type="submit"]');
 
-                const text = await page.evaluate(() => document.querySelector('.message').textContent);
+                const text = await page.evaluate(() => document.querySelector('.alert').textContent.trim());
 
                 assert.equal(text,"Sorry, These Passwords Don't Match");
             })();
@@ -281,7 +281,7 @@ describe('Authentication Code Grant', function() {
                 await page.goto('http://localhost:3000/dialog/authorize?response_type=code&client_id=abc123&redirect_uri=https%3A%2F%2Fwww%2Egoogle%2Ecom%2F');
                 await page.$eval('input[name=email]', (el, value) => el.value = value, test_data.user_2.email);
                 await page.$eval('input[name=password]', (el, value) => el.value = value, test_data.user_1.password);
-                await page.click('input[type="submit"]');
+                await page.click('button[type="submit"]');
                 await page.waitFor('input[name="cancel"]');
                 await page.click('input[name="cancel"]');
 

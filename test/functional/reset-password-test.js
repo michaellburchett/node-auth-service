@@ -21,9 +21,6 @@ describe('Reset Passwords', function() {
     })
 
     describe('reset password success', async function() {
-
-        //When asked to reset a password, give a token
-
         it('should successfully display the reset password page when using a valid token', async function() {
             await (async () => {
                 await page.goto('http://localhost:3000/reset-password?user_id=' + test_data.user_id + '&reset_password_token=' + test_data.working_token.token);
@@ -60,9 +57,9 @@ describe('Reset Passwords', function() {
                 await page.goto('http://localhost:3000/forgot-password');
                 await page.waitFor('input[name=email]');
                 await page.$eval('input[name=email]', el => el.value = 'jeremydoe@mailinator.com');
-                await page.click('input[type="submit"]');
+                await page.click('button[type="submit"]');
 
-                const text = await page.evaluate(() => document.querySelector('.message').textContent);
+                const text = await page.evaluate(() => document.querySelector('.alert').textContent.trim());
 
                 assert.equal(text,"Sorry, a user with that Email cannot be found");
             })();
@@ -77,7 +74,7 @@ describe('Reset Passwords', function() {
                 await page.$eval('input[name=passwordverification]', el => el.value = '1234Reset');
                 await page.click('input[type="submit"]');
                         
-                const text = await page.evaluate(() => document.querySelector('.message').textContent);
+                const text = await page.evaluate(() => document.querySelector('.errorMessage').textContent);
      
                 assert.equal(text,"Sorry, These Passwords Don't Match");
             })();
@@ -92,7 +89,7 @@ describe('Reset Passwords', function() {
                 await page.$eval('input[name=passwordverification]', el => el.value = '123Reset');
                 await page.click('input[type="submit"]');
                         
-                const text = await page.evaluate(() => document.querySelector('.message').textContent);
+                const text = await page.evaluate(() => document.querySelector('.errorMessage').textContent);
      
                 assert.equal(text,"Sorry, this URL is Invalid");
             })();
@@ -107,7 +104,7 @@ describe('Reset Passwords', function() {
                 await page.$eval('input[name=passwordverification]', el => el.value = '123Reset');
                 await page.click('input[type="submit"]');
                         
-                const text = await page.evaluate(() => document.querySelector('.message').textContent);
+                const text = await page.evaluate(() => document.querySelector('.errorMessage').textContent);
      
                 assert.equal(text,"Sorry, a user with that Email cannot be found");
             })();
@@ -122,7 +119,7 @@ describe('Reset Passwords', function() {
                 await page.$eval('input[name=passwordverification]', el => el.value = '123Reset');
                 await page.click('input[type="submit"]');
                         
-                const text = await page.evaluate(() => document.querySelector('.message').textContent);
+                const text = await page.evaluate(() => document.querySelector('.errorMessage').textContent);
      
                 assert.equal(text,"Sorry, this URL is Invalid");
             })();
@@ -137,7 +134,7 @@ describe('Reset Passwords', function() {
                 await page.$eval('input[name=passwordverification]', el => el.value = '123Reset');
                 await page.click('input[type="submit"]');
                         
-                const text = await page.evaluate(() => document.querySelector('.message').textContent);
+                const text = await page.evaluate(() => document.querySelector('.errorMessage').textContent);
      
                 assert.equal(text,"Sorry, This Request is Expired. Please Request a New Email");
             })();
@@ -152,7 +149,7 @@ describe('Reset Passwords', function() {
                 await page.$eval('input[name=passwordverification]', el => el.value = '123Reset');
                 await page.click('input[type="submit"]');
                         
-                const text = await page.evaluate(() => document.querySelector('.message').textContent);
+                const text = await page.evaluate(() => document.querySelector('.errorMessage').textContent);
      
                 assert.equal(text,"Sorry, This Token Has Already Been Used");
             })();

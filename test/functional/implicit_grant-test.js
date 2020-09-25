@@ -50,7 +50,7 @@ describe('Implicit Grant', function() {
 
 
 
-                await page.click('input[type="submit"]');
+                await page.click('button[type="submit"]');
 
                 const text = await page.evaluate(() => document.querySelector('.hello').textContent);
 

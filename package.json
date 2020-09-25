@@ -13,6 +13,7 @@
   "dependencies": {
     "bcrypt": "^4.0.1",
     "body-parser": "^1.19.0",
+    "bootstrap": "^4.5.2",
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
     "child_process": "^1.0.2",
@@ -23,6 +24,7 @@
     "dotenv": "^8.2.0",
     "ejs": "^3.1.2",
     "errorhandler": "^1.5.1",
+    "expiration-date-utility": "file:../expiration-date-utility",
     "express": "^4.17.1",
     "express-session": "^1.17.1",
     "fs": "0.0.1-security",
@@ -31,6 +33,7 @@
     "mysql": "^2.18.1",
     "mysql2": "^2.1.0",
     "nodemailer": "^6.4.6",
+    "nodemailer-simple-transport": "1.0.0",
     "oauth2orize": "^1.11.0",
     "passport": "^0.4.1",
     "passport-http": "^0.3.0",

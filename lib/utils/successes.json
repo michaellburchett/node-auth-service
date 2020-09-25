@@ -1,0 +1,5 @@
+{
+    "generic": "Action performed successfully",
+    "userAdded": "This user has been added successfully. Sign in to continue",
+    "forgotPasswordSent": "We have sent a link to the email provided with information on how to complete the reset process"
+}
