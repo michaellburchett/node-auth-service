@@ -15,6 +15,14 @@
       "clientSecret": "itsa-secret", 
       "isTrusted": true, 
       "redirectURI": "https://www.google.com/"
+    },
+    {
+      "id": "3", 
+      "name": "Mike's App", 
+      "clientId": "mikeapp", 
+      "clientSecret": "ssh-secret", 
+      "isTrusted": true, 
+      "redirectURI": "http://localhost:3000/user_info"
     }
   ]
 }
