@@ -94,13 +94,13 @@ describe('Implicit Grant', function() {
                 var string = pageUrl.split("access_token=");
                 string = string[1].split("&");
                 const token = string[0];
-
+console.log(token);
                 chai.request(app)
                 .get('/api/userinfo')
                 .set("Authorization", "Bearer " + token)
                 .end(async (error, res) => {
-
-                    assert.equal(res.status,200);
+console.log(res.body);
+                    assert.strictEqual(res.status,200);
 
                     var access_token = await (new AccessToken).fetchByField("token",token);
                     var refresh_token = await (new RefreshToken).fetchByField("access_token_id",access_token.id);

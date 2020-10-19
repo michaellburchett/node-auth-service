@@ -45,7 +45,7 @@ describe('Reset Passwords', function() {
                 const html = await page.evaluate(body => body.innerHTML, bodyHandle);
                 await bodyHandle.dispose();
 
-                assert.equal(html,"OAuth 2.0 Server");
+                assert.equal(html,"Mike's Awesome Auth Server");
             })();
         }).timeout(10000);
     });
