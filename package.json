@@ -12,7 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^4.0.1",
-    "body-parser": "^1.19.0",
+    "body-parser": "^1.20.1",
     "bootstrap": "^4.5.2",
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
@@ -26,7 +26,7 @@
     "ejs": "^3.1.2",
     "errorhandler": "^1.5.1",
     "expiration-date-utility": "file:../expiration-date-utility",
-    "express": "^4.17.1",
+    "express": "^4.18.2",
     "express-session": "^1.17.1",
     "fs": "0.0.1-security",
     "mocha": "^7.1.2",
